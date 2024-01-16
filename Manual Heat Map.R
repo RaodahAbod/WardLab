@@ -75,7 +75,7 @@ draw(htmp3,column_title = "Heatmap of Top Heart Terms (3/3) Containing `Heart`, 
 
 sortAndExtractHeartOnly <- function(dataSet){ 
  dataSet <- dataSet %>%
-  filter(grepl("cardi|heart|ventricle", Description, ignore.case = TRUE)) %>%
+  filter(grepl("cardi|heart", Description, ignore.case = TRUE)) %>%
   arrange(p.adjust) %>%
   slice(1:15) %>%
   select(Description, p.adjust)
@@ -124,7 +124,7 @@ logTopHeartGOs[is.na(logTopHeartGOs)] <- 1
 
 htmp <- Heatmap(as.matrix(logTopHeartGOs))
 htmp@row_names_param[["gp"]][["fontsize"]] <- 10
-draw(htmp,column_title = "Heatmap of Top 15 Terms Containing `Heart`, `Cardiac`, or `Ventricle`
+draw(htmp,column_title = "Heatmap of Top 15 Terms Containing `Heart` or `Cardiac`
      (Includes iPSC Top General Terms)")
 
 
