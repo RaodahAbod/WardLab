@@ -66,7 +66,7 @@ draw(htmp2,column_title = "Heatmap of Top Heart Terms (2/3) Containing `Heart`, 
 # heat_col <- colorRamp2(c(min(logHeartGOs_3), max(logHeartGOs_3)), c("black", "white"))
 # htmp3 <- Heatmap(as.matrix(logHeartGOs_3), col = heat_col)
 
-htmp3 <- Heatmap(as.matrix(logHeartGOs_3))
+htmp3 <- Heatmap(as.matrix(logHeartGOs_3), na_col = "grey")
 htmp3@row_names_param[["gp"]][["fontsize"]] <- 10
 draw(htmp3,column_title = "Heatmap of Top Heart Terms (3/3) Containing `Heart`, `Cardiac`, or `Ventricle`")
 
@@ -117,16 +117,16 @@ masterTopHeartGOs_noID <- as.data.frame(masterTopHeartGOs_noID)
 rownames(masterTopHeartGOs_noID) <- mth_terms
 
 logTopHeartGOs <- -log10(masterTopHeartGOs_noID)
-logTopHeartGOs[is.na(logTopHeartGOs)] <- 1
+#logTopHeartGOs[is.na(logTopHeartGOs)] <- 1
 
 # heat_col <- colorRamp2(c(min(logTopHeartGOs), max(logTopHeartGOs)), c("black", "white"))
 # htmp <- Heatmap(as.matrix(logTopHeartGOs), col = heat_col)
 
-htmp <- Heatmap(as.matrix(logTopHeartGOs))
+htmp <- Heatmap(as.matrix(logTopHeartGOs), na_col = "black")
 htmp@row_names_param[["gp"]][["fontsize"]] <- 10
 draw(htmp,column_title = "Heatmap of Top 15 Terms Containing `Heart` or `Cardiac`
      (Includes iPSC Top General Terms)")
-
+htmp
 
 # Heatmap! -----------------------------------------
 #not being used in this analysis
