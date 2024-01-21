@@ -4,6 +4,7 @@ library(tidyverse)
 library(dplyr)
 library(ComplexHeatmap)
 library(circlize)
+library(gplots)
 
 # load in go enrich tibbles ---------------------------------------------------------
 
@@ -127,6 +128,10 @@ htmp@row_names_param[["gp"]][["fontsize"]] <- 10
 draw(htmp,column_title = "Heatmap of Top 15 Terms Containing `Heart` or `Cardiac`
      (Includes iPSC Top General Terms)")
 htmp
+
+heatmap.2(as.matrix(logTopHeartGOs), na.color = 'grey')
+
+
 
 # Heatmap! -----------------------------------------
 #not being used in this analysis
