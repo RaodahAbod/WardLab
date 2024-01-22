@@ -25,14 +25,6 @@ sortAndExtractHeartOnly <- function(dataSet){
  return(dataSet)
 }
 
-sortAndExtract <- function(dataSet) {
- dataSet <- dataSet %>%
-  arrange(p.adjust) %>%
-  slice(1:15) %>%
-  select(Description, p.adjust)
- return(dataSet)
-}
-
 newDay0 <- select(ipsc_enrichGO, Description, `Day 0 p.adjust` = `p.adjust`)
 newDay15 <- select(ipsc_cm_enrichGO, Description,`Day 15 p.adjust` = `p.adjust`)
 newDay30 <- select(cm_enrichGO, Description, `Day 30 p.adjust` = `p.adjust`)
@@ -63,5 +55,4 @@ logTopHeartGOs <- -log10(masterTopHeartGOs_noID)
 value_colors <- c("NA" = "gray")
 htmp <- Heatmap(as.matrix(logTopHeartGOs), na_col = value_colors)
 htmp@row_names_param[["gp"]][["fontsize"]] <- 10
-draw(htmp,column_title = "Heatmap of Top 15 Terms Containing `Heart` or `Cardiac`
-     (Includes iPSC Top General Terms)")
+draw(htmp,column_title = "Heatmap of Top 15 Terms Containing `Heart` or `Cardiac`")
