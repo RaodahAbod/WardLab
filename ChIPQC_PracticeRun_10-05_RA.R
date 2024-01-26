@@ -92,7 +92,7 @@ if(peak_caller == "b"){
 }
 
 
-# Ill do it myself ------------------------------------------------------------------
+#  Attempt to perform manually ------------------------------------------------------------------
 
 extractDataIntoList <- function(ChIPQC_output){
  AvgPeakSig1 <- ChIPQC_output@AveragePeakSignal[1]
@@ -111,7 +111,7 @@ day0h_H21792 <- extractDataIntoList(testExample2)
 
 
 
-# lol i tired -----------------------------------------------------------------------
+# Does not work -----------------------------------------------------------------------
 register(SerialParam())
 exampleExp <- ChIPQC(file, annotation="hg38", consensus=TRUE)
 maybe <- ChIPQCreport(exampleExp)
