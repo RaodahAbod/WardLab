@@ -42,8 +42,11 @@ library(clusterProfiler)
 library(DOSE)
 
 tibble_anno_enrichGO <- enrichGO(gene = anno_genes_peaks, OrgDb = "org.Hs.eg.db",
-                                 ont = "ALL", pvalueCutoff = 0.1, minGSSize = 5,
+                                 ont = "ALL", pvalueCutoff = 0.01, minGSSize = 5,
                                  maxGSSize = 500)
+
+titleName <- paste("GO Enrichment Analysis for", working_file)
+dotplot(tibble_anno_enrichGO, x = 'p.adjust', title = titleName, showCategory = 18)
 
 # Save As Tibble --------------------------------------------------------------------
 # View the top enriched GO terms as a tibble
@@ -60,6 +63,8 @@ setwd("C:/Users/raoda/OneDrive/Desktop/R Stuff/CUT&Tag Processing/Enrichment Tib
 enrichment_fileName <- readline(prompt = "Enter the EnrichGO Tibble filename: ")
 enrichment_fileName <- paste0(enrichment_fileName,".csv")
 write.csv(GO_Tibble, file = enrichment_fileName)
+
+
 
 
 
