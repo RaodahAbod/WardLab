@@ -1,21 +1,25 @@
 rm(list = ls())
-setwd("C:/Users/raoda/OneDrive/Desktop/R Stuff/CUT&Tag Processing/Practice with Data")
+setwd("C:/Users/raoda/OneDrive/Desktop/R Stuff/CUT&Tag Processing")
 
 # Load Data ---------------------------------------------------------------
 library(ChIPseeker)
 
 loadFile_peakCall <- function(){
- file <- file.choose()
+ file <- choose.files()
  file <- readPeakFile(file, header = FALSE)
  return(file)
 }
 
+# iPSC_H3K27ac <- loadFile_peakCall()
+# iPSC_H3K9me3 <- loadFile_peakCall()
+
 iPSC20b_H3K27ac <- loadFile_peakCall()
 iPSC20b_H3K9me3 <- loadFile_peakCall()
 
-JohnD0_H3K27ac <- loadFile_peakCall()
-JohnD15_H3K27ac <- loadFile_peakCall()
-JohnD30_H3K27ac <- loadFile_peakCall()
+# iPSC_CM_H3K27ac <- loadFile_peakCall()
+# iPSC_CM_H3K9me3 <- loadFile_peakCall()
+
+CM_H3K27ac <- loadFile_peakCall()
 
 LV_H3K27ac <- loadFile_peakCall()
 LV_H3K9me3 <- loadFile_peakCall()
@@ -29,12 +33,16 @@ prepGRangeObj <- function(seek_object){
  return(seek_object)
 }
 
+# iPSC_H3K27ac <- prepGRangeObj(iPSC_H3K27ac)
+# iPSC_H3K9me3 <- prepGRangeObj(iPSC_H3K9me3)
+
 iPSC20b_H3K27ac <- prepGRangeObj(iPSC20b_H3K27ac)
 iPSC20b_H3K9me3 <- prepGRangeObj(iPSC20b_H3K9me3)
 
-JohnD0_H3K27ac <- prepGRangeObj(JohnD0_H3K27ac)
-JohnD15_H3K27ac <- prepGRangeObj(JohnD15_H3K27ac)
-JohnD30_H3K27ac <- prepGRangeObj(JohnD30_H3K27ac)
+# iPSC_CM_H3K27ac <- prepGRangeObj(iPSC_CM_H3K27ac)
+# iPSC_CM_H3K9me3 <- prepGRangeObj(iPSC_CM_H3K9me3)
+
+CM_H3K27ac <- prepGRangeObj(CM_H3K27ac)
 
 LV_H3K27ac <- prepGRangeObj(LV_H3K27ac)
 LV_H3K9me3 <- prepGRangeObj(LV_H3K9me3)
@@ -44,25 +52,30 @@ library("TxDb.Hsapiens.UCSC.hg38.knownGene")
 library("org.Hs.eg.db")
 TxDb_hg38 = TxDb.Hsapiens.UCSC.hg38.knownGene
 
-Epi_list <- GRangesList(D0K27ac = JohnD0_H3K27ac, D15K27ac = JohnD15_H3K27ac, 
-                        D30K27ac = JohnD30_H3K27ac, iPSC_K27ac = iPSC20b_H3K27ac, 
-                        iPSC_K9me3 = iPSC20b_H3K9me3, LV_K27ac = LV_H3K27ac,
-                        LV_K9me3 = LV_H3K9me3)
+Epi_list <- GRangesList(iPSC_H3K27ac = iPSC_H3K27ac, iPSC_H3K9me3 = iPSC_H3K9me3,
+                        iPSC20b_H3K27ac = iPSC20b_H3K27ac, iPSC20b_H3K9me3 = iPSC20b_H3K9me3,
+                        iPSC_CM_H3K27ac = iPSC_CM_H3K27ac, iPSC_CM_H3K9me3 = iPSC_CM_H3K9me3,
+                        CM_H3K27ac = CM_H3K27ac,
+                        LV_H3K27ac = LV_H3K27ac, LV_H3K9me3 = LV_H3K9me3)
 
-
-peakAnnoList <- lapply(Epi_list, annotatePeak, tssRegion = c(-2000,0), TxDb = TxDb_hg38)
+peakAnnoList <- lapply(Epi_list, annotatePeak, tssRegion = c(-2000,2000), 
+                       TxDb = TxDb_hg38)
 peakAnnoList_genes = lapply(peakAnnoList, function(i)as.data.frame(i)$geneId)
 
 #can directly extract the GeneID column
-D0K27ac_anno_genes <- as.data.frame(peakAnnoList$D0K27ac)$geneId
-D15K27ac_anno_genes <- as.data.frame(peakAnnoList$D15K27ac)$geneId
-D30K27ac_anno_genes <- as.data.frame(peakAnnoList$D30K27ac)$geneId
+# iPSC_H3K27ac_anno_genes <- as.data.frame(peakAnnoList$iPSC_H3K27ac)$geneId
+# iPSC_H3K9me3_anno_genes <- as.data.frame(peakAnnoList$iPSC_H3K9me3)$geneId
 
-iPSC_K9me3_anno_genes <- as.data.frame(peakAnnoList$iPSC_K9me3)$geneId
-iPSC_K27ac_anno_genes <- as.data.frame(peakAnnoList$iPSC_K27ac)$geneId
+iPSC20b_H3K27ac_anno_genes <- as.data.frame(peakAnnoList$iPSC20b_H3K27ac)$geneId
+iPSC20b_H3K9me3_anno_genes <- as.data.frame(peakAnnoList$iPSC20b_H3K9me3)$geneId
+# 
+# iPSC_CM_H3K27ac_anno_genes <- as.data.frame(peakAnnoList$iPSC_CM_H3K27ac)$geneId
+# iPSC_CM_H3K9me3_anno_genes <- as.data.frame(peakAnnoList$iPSC_CM_H3K9me3)$geneId
 
-LV_K9me3_anno_genes <- as.data.frame(peakAnnoList$LV_K9me3)$geneId
-LV_K27ac_anno_genes <- as.data.frame(peakAnnoList$LV_K27ac)$geneId
+CM_H3K27ac_anno_genes <- as.data.frame(peakAnnoList$CM_H3K27ac)$geneId
+
+LV_H3K9me3_anno_genes <- as.data.frame(peakAnnoList$LV_H3K9me3)$geneId
+LV_H3K27ac_anno_genes <- as.data.frame(peakAnnoList$LV_H3K27ac)$geneId
 
 # Protocol 4: Visualiztion of annotated results ----------------------------------------------
 library(ggVennDiagram)
@@ -70,60 +83,58 @@ library(ggupset)
 library(clusterProfiler)
 library(DOSE)
 
-plotAnnoBar(peakAnnoList)
+plotAnnoBar(peakAnnoList, main = "Genomic Feature Distribution")
 
-iPSC_K27ac_anno_enrichGO <- enrichGO(gene = iPSC_K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
-                                     ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
+# iPSC_H3K27ac_anno_enrichGO <- enrichGO(gene = iPSC_H3K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
+#                                   ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
+#                                   maxGSSize = 200)
+# iPSC_H3K9me3_anno_enrichGO <- enrichGO(gene = iPSC_H3K9me3_anno_genes, OrgDb = "org.Hs.eg.db",
+#                                   ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
+#                                   maxGSSize = 200)
+
+iPSC20b_H3K27ac_anno_enrichGO <- enrichGO(gene = iPSC20b_H3K27ac_anno_genes, 
+                                          OrgDb = "org.Hs.eg.db",
+                                          ont = "ALL", pvalueCutoff = 0.05, 
+                                          minGSSize = 10, maxGSSize = 200)
+iPSC20b_H3K9me3_anno_enrichGO <- enrichGO(gene = iPSC20b_H3K9me3_anno_genes, 
+                                          OrgDb = "org.Hs.eg.db",
+                                          ont = "ALL", pvalueCutoff = 0.05, 
+                                          minGSSize = 10, maxGSSize = 200)
+
+# iPSC_CM_H3K27ac_anno_enrichGO <- enrichGO(gene = iPSC_CM_H3K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
+#                                    ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
+#                                    maxGSSize = 200)
+# iPSC_CM_H3K9me3_anno_enrichGO <- enrichGO(gene = iPSC_CM_H3K9me3_anno_genes, OrgDb = "org.Hs.eg.db",
+#                                    ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
+#                                    maxGSSize = 200)
+
+CM_H3K27ac_anno_enrichGO <- enrichGO(gene = CM_H3K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
+                                     ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
                                      maxGSSize = 200)
 
-iPSC_K9me3_anno_enrichGO <- enrichGO(gene = iPSC_K9me3_anno_genes, OrgDb = "org.Hs.eg.db",
-                                     ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
+LV_H3K27ac_anno_enrichGO <- enrichGO(gene = LV_H3K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
+                                     ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
                                      maxGSSize = 200)
-
-D0K27ac_anno_enrichGO <- enrichGO(gene = D0K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
-                                  ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
-                                  maxGSSize = 200)
-
-D15K27ac_anno_enrichGO <- enrichGO(gene = D15K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
-                                   ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
-                                   maxGSSize = 200)
-
-D30K27ac_anno_enrichGO <- enrichGO(gene = D30K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
-                                   ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
-                                   maxGSSize = 200)
-
-LV_K27ac_anno_enrichGO <- enrichGO(gene = LV_K27ac_anno_genes, OrgDb = "org.Hs.eg.db",
-                                   ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
-                                   maxGSSize = 200)
-
-LV_K9me3_anno_enrichGO <- enrichGO(gene = LV_K9me3_anno_genes, OrgDb = "org.Hs.eg.db",
-                                   ont = "ALL", pvalueCutoff = 0.01, minGSSize = 10,
-                                   maxGSSize = 200)
-
-#Epi_list_enrichGO = compareCluster(geneCluster = c(D0K27ac_anno_genes,D15K27ac_anno_genes,
-#                                  D30K27ac_anno_genes), fun = "enrichGO",
-#                                  pvalueCutoff = 0.01, minGSSize = 10, maxGSSize = 200,
-#                                  OrgDb = "org.Hs.eg.db")
-
-#Epi_list_enrichGO = compareCluster(geneCluster = peakAnnoList_genes, fun = "enrichGO",
-#                                   pvalueCutoff = 0.01, minGSSize = 10, maxGSSize = 200,
-#                                   OrgDb = "org.Hs.eg.db")
-
+LV_H3K9me3_anno_enrichGO <- enrichGO(gene = LV_H3K9me3_anno_genes, OrgDb = "org.Hs.eg.db",
+                                     ont = "ALL", pvalueCutoff = 0.05, minGSSize = 10,
+                                     maxGSSize = 200)
 
 #dotplot(Epi_list_enrichGO, x = "p.adjust", title = "GO Enrichment Analysis Epigenetic List",
 #        showCategory = 14)
 
-dotplot(iPSC_K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC H3K27ac", showCategory = 18)
-dotplot(iPSC_K9me3_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC H3K9me3", showCategory = 18)
+# dotplot(iPSC_H3K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC H3K27ac", showCategory = 18)
+# dotplot(iPSC_H3K9me3_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC H3K9me3", showCategory = 18)
 
-dotplot(D0K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for Day 0 H3K27ac", showCategory = 18)
-dotplot(D15K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis Day 15  H3K27ac", showCategory = 18)
-dotplot(D30K27ac_anno_enrichGO,  x = 'p.adjust', title = "GO Enrichment Analysis for Day 30 H3K27ac", showCategory = 18)
+dotplot(iPSC20b_H3K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC 20b H3K27ac", showCategory = 18)
+dotplot(iPSC20b_H3K9me3_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC 20b H3K9me3", showCategory = 18)
+# 
+# dotplot(iPSC_CM_H3K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC CM H3K27ac", showCategory = 18)
+# dotplot(iPSC_CM_H3K9me3_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for iPSC CM H3K9me3", showCategory = 18)
 
-dotplot(LV_K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for LV H3K27ac", showCategory = 18)
-dotplot(LV_K9me3_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for LV H3K9me3", showCategory = 18)
+dotplot(CM_H3K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for CM H3K27ac", showCategory = 18)
 
-barplot(D0K27ac_anno_enrichGO, showCategory = 20) 
+dotplot(LV_H3K27ac_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for LV H3K27ac", showCategory = 18)
+dotplot(LV_H3K9me3_anno_enrichGO, x = 'p.adjust', title = "GO Enrichment Analysis for LV H3K9me3", showCategory = 18)
 
 #####Metaplots#####
 
