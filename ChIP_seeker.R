@@ -9,17 +9,11 @@ loadFile_peakCall <- function(){
  file <- readPeakFile(file, header = FALSE)
  return(file)
 }
-day0_S <- loadFile_peakCall()
-day0h_S <- loadFile_peakCall()
-day1_S <- loadFile_peakCall()
-day2_S <- loadFile_peakCall()
-day3_S <- loadFile_peakCall()
-day4_S <- loadFile_peakCall()
-day5_S <- loadFile_peakCall()
-day7_S <- loadFile_peakCall()
-day10_S <- loadFile_peakCall()
-day15_S <- loadFile_peakCall()
-day30_S <- loadFile_peakCall()
+day0_Ch <- loadFile_peakCall()
+day1_Ch <- loadFile_peakCall()
+day2_Ch <- loadFile_peakCall()
+day5_Ch <- loadFile_peakCall()
+day15_Ch <- loadFile_peakCall()
 
 # Protocol 1: ChIPseeker and epigenomic dataset prep ------------------------------------------
 
@@ -30,31 +24,29 @@ prepGRangeObj <- function(seek_object){
  return(seek_object)
 }
 
-day0_S <- prepGRangeObj(day0_S)
-day0h_S <- prepGRangeObj(day0h_S)
-day1_S <- prepGRangeObj(day1_S)
-day2_S <- prepGRangeObj(day2_S)
-day3_S <- prepGRangeObj(day3_S)
-day4_S <- prepGRangeObj(day4_S)
-day5_S <- prepGRangeObj(day5_S)
-day7_S <- prepGRangeObj(day7_S)
-day10_S <- prepGRangeObj(day10_S)
-day15_S <- prepGRangeObj(day15_S)
-day30_S <- prepGRangeObj(day30_S)
+day0_Ch <- prepGRangeObj(day0_Ch)
+day1_Ch <- prepGRangeObj(day1_Ch)
+day2_Ch <- prepGRangeObj(day2_Ch)
+day5_Ch <- prepGRangeObj(day5_Ch)
+day15_Ch <- prepGRangeObj(day15_Ch)
+
 
 # Protocol 2: Annotation of Epigenomic datasets----------------------------------------------------------
 library("TxDb.Hsapiens.UCSC.hg38.knownGene")
+library("TxDb.Ptroglodytes.UCSC.panTro4.refGene")
 library("org.Hs.eg.db")
 TxDb_hg38 = TxDb.Hsapiens.UCSC.hg38.knownGene
+Tx_Pantro4 = TxDb.Ptroglodytes.UCSC.panTro4.refGene
 
-Epi_list <- GRangesList(day0_S = day0_S, day0h_S = day0h_S, day1_S = day1_S, day2_S = day2_S,
-                        day3_S = day3_S, day4_S = day4_S, day5_S = day5_S, day7_S = day7_S,
-                        day10_S = day10_S, day15_S = day15_S, day30_S = day30_S)
+Epi_list <- GRangesList(day0_Ch = day0_Ch, day1_Ch = day1_Ch, day2_Ch = day2_Ch,
+                        day5_Ch = day5_Ch, day15_Ch = day15_Ch)
 
 peakAnnoList <- lapply(Epi_list, annotatePeak, tssRegion = c(-2000,2000), 
                        TxDb = TxDb_hg38)
+peakAnnoList <- lapply(Epi_list, annotatePeak, tssRegion = c(-2000,2000), 
+                       TxDb = Tx_Pantro4)
 
-list2env(peakAnnoList,envir = .GlobalEnv) #renee!
+#list2env(peakAnnoList,envir = .GlobalEnv) #renee!
 
 # Protocol 4: Visualiztion of annotated results ----------------------------------------------
 library(ggVennDiagram)
@@ -67,6 +59,8 @@ plotAnnoBar(peakAnnoList, main = "Genomic Feature Distribution")
 #####Metaplots#####
 
 TSS = getBioRegion(TxDb=TxDb_hg38, upstream=3000, downstream=3000, by = "gene", 
+                   type = "start_site")
+TSS = getBioRegion(TxDb=Tx_Pantro4, upstream=3000, downstream=3000, by = "gene", 
                    type = "start_site")
 Epi_list_tagMatrix = lapply(Epi_list, getTagMatrix, windows = TSS)
 
