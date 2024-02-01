@@ -19,6 +19,7 @@ separatePeaks <- function(peak_file,topWhatever){
    return(topPeaks)
 }
 
+
 topHalf_Peaks <- separatePeaks(workingData, 1/2) 
 topThird_Peaks <- separatePeaks(workingData, 1/3) 
 topFourth_Peaks <- separatePeaks(workingData, 1/4)
