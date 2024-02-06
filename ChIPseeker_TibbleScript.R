@@ -5,8 +5,6 @@ library(ChIPseeker)
 library(tibble)
 library("TxDb.Hsapiens.UCSC.hg38.knownGene")
 library("org.Hs.eg.db")
-library(ggVennDiagram)
-library(ggupset)
 library(clusterProfiler)
 library(DOSE)
 
@@ -40,13 +38,13 @@ anno_genes_peaks <- as.data.frame(peakAnnoList$tibble_PeakFile)$geneId
 
 # Protocol 4: Visualiztion of annotated results ----------------------------------------------
 tibble_anno_enrichGO3 <- enrichGO(gene = anno_genes_peaks, OrgDb = "org.Hs.eg.db",
-                                  ont = "ALL" , pvalueCutoff = 0.9, qvalueCutoff = 0.9,
+                                  ont = "ALL" , pvalueCutoff = 1, qvalueCutoff = 1,
                                   pAdjustMethod = 'none', minGSSize = 5,
                                   maxGSSize = 500)
 
 # Save As Tibble --------------------------------------------------------------------
 # View the top enriched GO terms as a tibble
-GO_Tibble3 <- tibble_anno_enrichGO3 %>% as_tibble()
+GO_Tibble <- tibble_anno_enrichGO3 %>% as_tibble()
 GO_Tibble
 # Arrange by adjusted p value
 GO_Tibble <- GO_Tibble %>%
@@ -57,7 +55,7 @@ GO_Tibble$Description <- factor(GO_Tibble$Description,
 
 setwd("C:/Users/raoda/Desktop/R Stuff/CUT&Tag Processing/Gene Ontology Enrichment Tibbles")
 #enrichment_fileName <- readline(prompt = "Enter the EnrichGO Tibble filename: ")
-enrichment_fileName <- paste0(working_file,"_EnrichmentTibble.csv")
+enrichment_fileName <- paste0(working_file,"_EnrichmentTibble_p1.csv")
 write.csv(GO_Tibble, file = enrichment_fileName)
 
 
