@@ -4,33 +4,41 @@ library(tidyverse)
 library(dplyr)
 library(ggplot2)
 
-batch1 <- c("1_78-1_K27me3_Accutase", "2_78-1_K27me3_Trypsin",
-            "3_78-1_K27me3_FF", "4_78-1_K27me3_Scraped")
-batch2 <- c("5_H21792_K27ac_Accutase", "6_H21792_K27ac_Trypsin")
-batch3 <- c("7_H21792_K9me3_Trypsin","8_H21792_K9me3_Accutase","9_H21792_K9me3_Scraped" )
-batch4 <- c("10_78-1_K27ac_Accutase", "11_78-1_K27ac_Scraped")
-
-
-batchIt <- function(namesOfData, batchNum){
+batchIt <- function(namesOfData){
   file <- c()
 for (dataset in namesOfData){
   file = read.table(choose.files(), header = FALSE) %>% 
-    mutate(`Data Name` = dataset, Batch = batchNum) %>%
+    mutate(`Data Name` = dataset) %>%
     rbind(file, .)
 }
   batch <- file
   return(batch)
 }
-batchOne <- batchIt(batch1, 1)
-batchTwo <- batchIt(batch2, 2)
-batchThree <- batchIt(batch3, 3)
-batchFour <- batchIt(batch4, 4)
+chipseq <- c('Roadmap_LV_H3K27ac','Roadmap_LV_H3K9me3','Roadmap_iPSC20b_H3K27ac',
+             'Roadmap_iPSC20b_H3K9me3')
+encode <- c('Encode_LV_H3K27ac','Encode_iPSC20b_H3K27ac')
+cuttag <- c('Day0 H3K27ac', 'Day0 H3K9me3','Day15 H3K27ac','Day15 H3K9me3','Day30 H3K27ac')
 
-encode <- batchIt(c('Encode IPS 20b', 'Encode LV'),1)
-fullSample <- encode
-fullSample <- rbind(batchOne, batchTwo, batchThree, batchFour)
+outsourced <- batchIt(chipseq)
+encodestuff <- batchIt(encode)
+wardSamples <- batchIt(cuttag)
 
-autoData <- subset(fullSample, !grepl("chrX|chrY|chrM|chrUn", fullSample$V1))
+
+lengthandauto <- function(sample){
+  sample <-  sample %>%
+    mutate(peakLength = .[,3] - .[,2]) %>%
+      subset(!grepl("chrX|chrY|chrM|chrUn",V1)) %>%
+return()
+}
+
+outsourced1 <- lengthandauto(outsourced)
+encode1 <- lengthandauto(encodestuff)
+ward1 <- lengthandauto(wardSamples)
+
+encode1 <- select(encode1, V1,V2, V3, V4 = V7, `Data Name`, `peakLength` )
+ward1 <- select(ward1, V1, V2, V3, V4,`Data Name`, `peakLength` )
+fullSample <- rbind(outsourced1, ward1, encode1)
+chipSamples <- rbind(outsourced1, encode1)
 
 #only to run and save autosomal files
 saveAutos <- function(autosName){
@@ -54,7 +62,7 @@ saveAutos("EncodeiPS20b")
 # Plot Num of Peaks -------------------------------------------------------
 #the golden format :)
 ggplot(fullSample, aes(x = `Data Name`, fill = `Data Name`)) + geom_bar() +
-  facet_wrap(~Batch, scales = "free_x", ncol = 4) +
+  #facet_wrap(~Batch, scales = "free_x", ncol = 4) +
   labs(title = "Number of Peaks") +
   geom_text(stat = "count", aes(label = after_stat(count)),
             position = position_dodge(width = 0.9), vjust = -0.5) + 
@@ -70,14 +78,22 @@ ggplot(fullSample, aes(x = `Data Name`, fill = `Data Name`)) + geom_bar() +
 # 
 # autoData <- ObtainPeakLength(autoData)
 
-ggplot(autoData, aes(x = `Data Name`, y = V11)) + geom_boxplot(outlier.shape = NA) +
+ggplot(fullSample, aes(x = `Data Name`, y = peakLength)) + 
+  geom_boxplot(outlier.shape = NA) +
   labs(title = "Distribution of Peak Lengths") +
-  ylim(0,2000) + ylab("Peak Length") + xlab("Data Sample") 
+  ylim(0,2000) + ylab("Peak Length") + xlab("Data Sample") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 # Boxplot of Signal Intensity ---------------------------------------------
 
 #signal value for broad peaks is in column 7
-ggplot(autoData, aes(x = `Data Name`, y = V7)) + geom_boxplot(outlier.shape = NA) +
-  labs(title = "Distribution of Peak Signal Intensity") + coord_cartesian(ylim = c(0,25))+
-  ylab("Peak Signal Intensity") + xlab("Data Sample")
+ggplot(ward1, aes(x = `Data Name`, y = V4)) + geom_boxplot(outlier.shape = NA) +
+  labs(title = "Distribution of Peak Signal Intensity") +
+  ylab("Peak Signal Intensity") + xlab("Data Sample") + coord_cartesian(ylim = c(0,5000)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+  
 
+ggplot(chipSamples, aes(x = `Data Name`, y = V4)) + geom_boxplot(outlier.shape = NA) +
+  labs(title = "Distribution of Peak Signal Intensity") +
+  ylab("Peak Signal Intensity") + xlab("Data Sample") + coord_cartesian(ylim = c(0,30)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
