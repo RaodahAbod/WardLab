@@ -7,11 +7,11 @@ library(readr)
 
 # load in go enrich tibbles ---------------------------------------------------------
 
-H3K27me3_Accutase <- read_csv(choose.files())
-H3K27me3_Trypsin <- read_csv(choose.files())
-H3K27me3_FlashFroz <- read_csv(choose.files())
-H3K27me3_Scraped <- read_csv(choose.files())
-
+H3K27ac_Accutase_H21792 <- read_csv(choose.files())
+H3K27ac_Trypsin_H21792 <- read_csv(choose.files())
+H3K27ac_Accutase_78_1 <- read_csv(choose.files())
+H3K27ac_Scraped_78_1 <- read_csv(choose.files())
+H3K27ac_ENCODE_LV <- read_csv(choose.files())
 
 # Building off the Cardiac Only Terms. Top 15 for Each. Except iPSC ---------------------
 # this works. this is what i use. 
@@ -25,28 +25,32 @@ sortAndExtractHeartOnly <- function(dataSet){
  return(dataSet)
 }
 
-newAccutase <- dplyr::select(H3K27me3_Accutase, Description, `Day 0 p.adjust` = `p.adjust`)
-newTrypsin <- dplyr::select(H3K27me3_Trypsin, Description,`Day 15 p.adjust` = `p.adjust`)
-newFlashFroz <- dplyr::select(H3K27me3_FlashFroz, Description, `Day 30 p.adjust` = `p.adjust`)
-newScraped <- dplyr::select(H3K27me3_Scraped, Description, `ENCODE p.adjust` = `p.adjust`)
+newAccutase_H21792 <- dplyr::select(H3K27ac_Accutase_H21792, Description, `Sample 1 p.adjust` = `p.adjust`)
+newTrypsin_H21792 <- dplyr::select(H3K27ac_Trypsin_H21792, Description,`Sample 2 p.adjust` = `p.adjust`)
+newAccutase_781 <- dplyr::select(H3K27ac_Accutase_78_1, Description, `Sample 3 p.adjust` = `p.adjust`)
+newScraped_781 <- dplyr::select(H3K27ac_Scraped_78_1, Description, `Sample 4 p.adjust` = `p.adjust`)
+newEncode <- dplyr::select(H3K27ac_ENCODE_LV, Description, `Sample 5 p.adjust` = `p.adjust`)
 
-topTermsOnly <- rbind(sortAndExtractHeartOnly(H3K27me3_Accutase),
-                      sortAndExtractHeartOnly(H3K27me3_Trypsin),
-                      sortAndExtractHeartOnly(H3K27me3_FlashFroz),
-                      sortAndExtractHeartOnly(H3K27me3_Scraped)) %>%
+topTermsOnly <- rbind(sortAndExtractHeartOnly(H3K27ac_Accutase_H21792),
+                      sortAndExtractHeartOnly(H3K27ac_Trypsin_H21792),
+                      sortAndExtractHeartOnly(H3K27ac_Accutase_78_1),
+                      sortAndExtractHeartOnly(H3K27ac_Scraped_78_1),
+                      sortAndExtractHeartOnly(H3K27ac_ENCODE_LV)) %>%
   dplyr::select("Description")
 
 masterTopHeartGOs <- topTermsOnly %>% 
-  left_join(newAccutase, join_by(Description)) %>% 
-  left_join(newTrypsin, join_by(Description)) %>% 
-  left_join(newFlashFroz, join_by(Description)) %>% 
-  left_join(newScraped, join_by(Description)) %>%
+  left_join(newAccutase_H21792, join_by(Description)) %>% 
+  left_join(newTrypsin_H21792, join_by(Description)) %>% 
+  left_join(newAccutase_781, join_by(Description)) %>% 
+  left_join(newScraped_781, join_by(Description)) %>%
+  left_join(newEncode, join_by(Description)) %>%
   unique()
 
-colnames(masterTopHeartGOs) <- c("Description","78-1 H3K27me3 Accutase", 
-                                 "78-1 H3K27me3 Trypsin", 
-                                 "78-1 H3K27me3 Flash Frozen",
-                                 "78-1 H3K27me3 Scraped")                           
+colnames(masterTopHeartGOs) <- c("Description","H21792 H3K27ac Accutase", 
+                                 "H21792 H3K27ac Trypsin", 
+                                 "78-1 H3K27ac Accutase",
+                                 "78-1 H3K27ac Scraped",
+                                 "LV H3K27ac ENCODE")                           
 
 mth_terms <- masterTopHeartGOs$Description
 masterTopHeartGOs_noID <- subset(masterTopHeartGOs, select = -c(Description))
