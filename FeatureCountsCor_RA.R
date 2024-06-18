@@ -130,6 +130,9 @@ counts <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]],
 colnames(counts) <- dataName
 rownames(counts) <- featureLoc$chrLoc
 
+row_means <- rowMeans(counts)
+counts_filtered <- counts[row_means > 10,]
+#dim(x_filtered)
 
 #-----
 # Define color mappings with named levels
@@ -169,6 +172,19 @@ htmp3 <- Heatmap(as.matrix(cpm_highConf), width = unit(12, "cm"),column_title =
 htmp3@column_names_param[["gp"]][["fontsize"]] <- 8
 htmp3@row_names_param[["gp"]][["fontsize"]] <- 8
 htmp3
+
+#removing rowmeans = 0
+cpmFilt_highConf <- counts_filtered %>% 
+  cpm(., log = TRUE) %>% 
+  cor(method = "spearman")
+htmp_filt <- Heatmap(as.matrix(cpmFilt_highConf), width = unit(12, "cm"),column_title = 
+                   'CPM Spearman Correlation of Cardiotox Treatment Groups
+                   High Confidence Peak Set >= 2 Peaks', 
+                 top_annotation = heatChar)
+htmp_filt@column_names_param[["gp"]][["fontsize"]] <- 8
+htmp_filt@row_names_param[["gp"]][["fontsize"]] <- 8
+htmp_filt
+
 
 # Excluding Low peak Count Samples --------------------------------------------------
 
@@ -257,6 +273,7 @@ counts2 <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]],
                      `71-1 VEH3`[[1]],`71-1 VEH24`[[1]])
 
 colnames(counts2) <- dataName2
+rownames(counts2) <- featureLoc$chrLoc
 
 cor_noLowConf <- cor(counts2, method = "spearman") # rounded to 2 decimals
 
@@ -424,13 +441,9 @@ pca_counts2  %>%
 
 
 # boxplot ---------------------------------------------------------------------------
-
-condition1 <- grepl("^A", rownames(data))
 conditions <- c("chr8.11696723.11705488", "chr5.173227675.173237356",
                 "chr7.5424533.5430372", "chr8.11679200.11684553",
-                "chr11.65416268.65424443")
-
-
+                "chr11.65416268.65424443", "chr1.201376777.201377946")
 
 cntr <- 1
 for(a in conditions){
@@ -439,20 +452,24 @@ for(a in conditions){
   mutate(Peak = row.names(.)) %>% 
   pivot_longer(col = !Peak, names_to = "sample", values_to = "counts") %>% 
   cbind(.,characteristics)
+ 
  tmp$counts <- cpm(tmp$counts, log = TRUE)
  tmp$time <- factor(tmp$time, levels = c("3H","24H"))
- assign(paste0("box",cntr),tmp)
+ 
+ assign(paste0("box",cntr),tmp) 
  
  cntr <- cntr + 1
 }
 
+masterbox <- rbind(box1,box2,box3,box4,box5,box6)
 
-ggplot(box1, aes (x = time, y=counts))+
- geom_boxplot(aes(fill=trt))+
- facet_wrap(Peak~.) +
- #ggtitle("top 3 DAR in 3 hour DOX")+
- scale_fill_manual(values = drugPalette)
- #theme_bw()
+ggplot(masterbox, aes(x = time, y=counts))+
+  geom_boxplot(aes(fill=trt))+
+  facet_wrap(~Peak) +
+  #ggtitle("top 3 DAR in 3 hour DOX")+
+  scale_fill_manual(values = drugPalette)
+#theme_bw()
+
 
 
 
