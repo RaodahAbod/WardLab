@@ -12,16 +12,17 @@ H3K27me3_Trypsin <- read_csv(choose.files())
 H3K27me3_FlashFroz <- read_csv(choose.files())
 H3K27me3_Scraped <- read_csv(choose.files())
 H3K27me3_ENCODE <- read_csv(choose.files())
+H3K27me3_iPSC <- read_csv(choose.files())
 
 # Building off the Cardiac Only Terms. Top 15 for Each. Except iPSC ---------------------
 # this works. this is what i use. 
 
 sortAndExtractHeartOnly <- function(dataSet){ 
   dataSet <- dataSet %>%
-    filter(grepl("development|differentiation|morphogenesis",
-                 Description, ignore.case = TRUE,)) %>%
+    #filter(grepl("development|differentiation|morphogenesis",
+    #             Description, ignore.case = TRUE,)) %>%
     arrange(p.adjust) %>%
-    slice(1:15) %>%
+    slice(37:41) %>%
     select(Description, p.adjust)
   return(dataSet)
 }
@@ -31,12 +32,14 @@ newTrypsin <- dplyr::select(H3K27me3_Trypsin, Description,`Sample 2 p.adjust` = 
 newFlashFroz <- dplyr::select(H3K27me3_FlashFroz, Description, `Sample 3 p.adjust` = `p.adjust`)
 newScraped <- dplyr::select(H3K27me3_Scraped, Description, `Sample 4 p.adjust` = `p.adjust`)
 newENCODE <- dplyr::select(H3K27me3_ENCODE, Description, `Sample 5 p.adjust` = `p.adjust`)
+newiPSC <- dplyr::select(H3K27me3_iPSC, Description, `Sample 6 p.adjust` = `p.adjust`)
 
 topTermsOnly <- rbind(sortAndExtractHeartOnly(H3K27me3_Accutase),
                       sortAndExtractHeartOnly(H3K27me3_Trypsin),
                       sortAndExtractHeartOnly(H3K27me3_FlashFroz),
                       sortAndExtractHeartOnly(H3K27me3_Scraped),
-                      sortAndExtractHeartOnly(H3K27me3_ENCODE)) %>%
+                      sortAndExtractHeartOnly(H3K27me3_ENCODE),
+                      sortAndExtractHeartOnly(H3K27me3_iPSC)) %>%
   dplyr::select("Description")
 
 masterTopHeartGOs <- topTermsOnly %>% 
@@ -45,13 +48,15 @@ masterTopHeartGOs <- topTermsOnly %>%
   left_join(newFlashFroz, join_by(Description)) %>% 
   left_join(newScraped, join_by(Description)) %>%
   left_join(newENCODE, join_by(Description)) %>%
+  left_join(newiPSC, join_by(Description)) %>%
   unique()
 
 colnames(masterTopHeartGOs) <- c("Description","78-1 H3K27me3 Accutase", 
                                  "78-1 H3K27me3 Trypsin", 
                                  "78-1 H3K27me3 Flash Frozen",
                                  "78-1 H3K27me3 Scraped",
-                                 "LV ENCODE H3K27me3")                           
+                                 "LV ENCODE H3K27me3", 
+                                 "iPSC ENCODE H3K27me3")                           
 
 mth_terms <- masterTopHeartGOs$Description
 masterTopHeartGOs_noID <- subset(masterTopHeartGOs, select = -c(Description))
@@ -59,11 +64,11 @@ masterTopHeartGOs_noID <- as.data.frame(masterTopHeartGOs_noID)
 rownames(masterTopHeartGOs_noID) <- mth_terms
 logTopHeartGOs <- -log10(masterTopHeartGOs_noID)
 
-value_colors <- c("NA" = "gray")
-htmp <- Heatmap(as.matrix(logTopHeartGOs), na_col = value_colors)
-htmp@row_names_param[["gp"]][["fontsize"]] <- 8
-draw(htmp,column_title = "Heatmap of Top Terms Containing 
-`Development`,`Differentiation`, or `Morphogenesis`")
+value_colors <- c("NA" = "black")
+htmp <- Heatmap(as.matrix(logTopHeartGOs), na_col = value_colors, 
+                column_names_rot = -45, row_names_gp = gpar(fontsize = 8),
+                heatmap_height = unit(4,'npc'), row_names_max_width = unit(6,'cm'))
+draw(htmp,column_title = "Heatmap of Next 15 Top Terms (27:41)")
 
 # For top General Terms Only ---------------------
 # this works. this is what i use. 
