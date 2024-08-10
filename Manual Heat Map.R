@@ -22,7 +22,7 @@ sortAndExtractHeartOnly <- function(dataSet){
     #filter(grepl("development|differentiation|morphogenesis",
     #             Description, ignore.case = TRUE,)) %>%
     arrange(p.adjust) %>%
-    slice(37:41) %>%
+    slice(1:35) %>%
     select(Description, p.adjust)
   return(dataSet)
 }
@@ -40,6 +40,9 @@ topTermsOnly <- rbind(sortAndExtractHeartOnly(H3K27me3_Accutase),
                       sortAndExtractHeartOnly(H3K27me3_Scraped),
                       sortAndExtractHeartOnly(H3K27me3_ENCODE),
                       sortAndExtractHeartOnly(H3K27me3_iPSC)) %>%
+  dplyr::select("Description")
+
+topTermsOnly <- sortAndExtractHeartOnly(H3K27me3_ENCODE) %>%
   dplyr::select("Description")
 
 masterTopHeartGOs <- topTermsOnly %>% 
@@ -68,7 +71,7 @@ value_colors <- c("NA" = "black")
 htmp <- Heatmap(as.matrix(logTopHeartGOs), na_col = value_colors, 
                 column_names_rot = -45, row_names_gp = gpar(fontsize = 8),
                 heatmap_height = unit(4,'npc'), row_names_max_width = unit(6,'cm'))
-draw(htmp,column_title = "Heatmap of Next 15 Top Terms (27:41)")
+draw(htmp,column_title = "Heatmap of Encode LV Top 35 Terms")
 
 # For top General Terms Only ---------------------
 # this works. this is what i use. 

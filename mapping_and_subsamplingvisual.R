@@ -4,69 +4,73 @@ library(tidyverse)
 library(dplyr)
 
 subsampling <- read.csv(choose.files())
-filename <- choose.files() #renee
-subsampling$Subsampling <- as.character(subsampling$Subsampling)
 
-data_long <- subsampling %>%
-             pivot_longer(cols = c(Bowtie2.Alignment.Reads, 
-                                   Unique.Reads, 
-                                   Peak.Count), 
-                          names_to = "Metric", values_to = "Quantity")
+unique <- subset(subsampling, subsampling$Subsampling.Type == 'Unique Reads')
+unique <- select(unique, -c(Bowtie2.Alignment.Reads))
+
+bowtie <- subset(subsampling, subsampling$Subsampling.Type == 'Alignment Reads')
+
+unique_dataLong <- unique %>%
+                  pivot_longer(cols = c(Unique.Reads, 
+                                       Peak.Count), 
+                                 names_to = "Metric", values_to = "Quantity")
+
+bowtie_dataLong <- bowtie %>%
+                        pivot_longer(cols = c(Bowtie2.Alignment.Reads, 
+                                             Unique.Reads, 
+                                             Peak.Count), 
+                                    names_to = "Metric", values_to = "Quantity")
 
 # Reorder the levels of the Sample
 # Define the desired order of levels
 desired_order <- c("Bowtie2.Alignment.Reads", 
                    "Unique.Reads",
                    "Peak.Count")
-subsample_order <- c("3.3mil","3mil","2.5mil","2mil","1.5mil","1mil","500k")
+subsample_order <- c('7.8mil','7.5mil','7mil','6.5mil','6mil',
+                     '5.8mil','5.5mil','5mil','4.8mil','4.5mil',
+                     '4mil',"3.8mil",'3.5mil',"3mil","2.5mil",
+                     "2mil","1.5mil","1mil","500k")
 
 # Convert 'Sample' to a factor with the desired order
-data_long$Metric <- factor(data_long$Metric, levels = desired_order)
-data_long$Subsampling.Depth <- factor(data_long$Subsampling.Depth, levels = subsample_order)
-
-data_long$Subsampling <- as.character(data_long$Subsampling)
-
-dedupl_dataLong <- subset(data_long,data_long$Deduplicated. == "Yes")
-noDedupl_dataLong <- subset(data_long, data_long$Deduplicated. == 'No')
+bowtie_dataLong$Metric <- factor(bowtie_dataLong$Metric, levels = desired_order)
+bowtie_dataLong$Subsampling.Depth <- factor(bowtie_dataLong$Subsampling.Depth, levels = subsample_order)
+bowtie$Subsampling.Depth <- factor(bowtie$Subsampling.Depth, levels = subsample_order)
 
 
-ggplot(subsampling, aes(x = Sample, y = Paired.Reads, fill = Subsampling)) +
- geom_bar(stat = "identity", position = position_dodge(width = 1)) +
- facet_wrap(~Deduplicated., scales = "free_x") +
- geom_text(aes(label = Paired.Reads), position = position_dodge(width = 1),
-           vjust = -0.5, hjust = 0.5) + 
- labs(title = "Subsampling Statistics Grouped by Metric Type", x = "Sample") + 
- scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
- theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print("Raoda is awesome!!")
+unique_dataLong$Metric <- factor(unique_dataLong$Metric, levels = desired_order)
+unique_dataLong$Subsampling.Depth <- factor(unique_dataLong$Subsampling.Depth, levels = subsample_order)
+unique$Subsampling.Depth <- factor(unique$Subsampling.Depth, levels = subsample_order)
+
+ggplot(unique, aes(x = Unique.Reads, y = Peak.Count)) +
+   geom_point(aes(color = Subsampling.Depth), size = 3) + 
+   labs(title = "Output of Subsampling from Unique Reads") +
+   facet_wrap(~Sample, ncol = 1)
+
+ggplot(bowtie, aes(x = Unique.Reads, y = Peak.Count)) +
+   geom_point(aes(color = Subsampling.Depth), size = 3) + 
+   labs(title = "Output of Subsampling from Bowtie2 Alignment Reads")+
+   facet_wrap(~Sample, ncol = 1)
+
 #this one
-ggplot(data_long, aes(x = Sample, y = Quantity, fill = Subsampling.Depth)) +
- geom_bar(stat = "identity", position = position_dodge(width = 1)) +
- facet_grid(Metric~Sample, scales = "free") +
- geom_text(aes(label = Quantity), position = position_dodge(width = 1),
-           vjust = -0.5, hjust = 0.5, size = 5) + 
- labs(title = "Subsampling Statistics Grouped by Metric Type and Subsampling Depth", 
-      x = "Sample") +
- scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + 
- theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplot(unique_dataLong, aes(x = Sample, y = Quantity, fill = Subsampling.Depth)) +
+   geom_bar(stat = "identity", position = position_dodge(width = 1)) +
+   facet_grid(Metric~Sample, scales = "free") +
+   geom_text(aes(label = Quantity), position = position_dodge(width = 1),
+             vjust = -0.5, hjust = 0.5, size = 4, fontface = "bold") + 
+   labs(title = "Output of Subsampling from Unique Reads", 
+        x = "Sample") +
+   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggplot(dedupl_dataLong, aes(x = Sample, y = Quantity, fill = Subsampling)) +
- geom_bar(stat = "identity", position = position_dodge(width = 1)) +
- facet_grid(Metric~Deduplicated., scales = "free") +
- geom_text(aes(label = Quantity), position = position_dodge(width = 1),
-           vjust = -0.5, hjust = 0.5, size = 3) + 
- labs(title = "Subsampling Paired Read Statistics", x = "Sample", y = "Read Count") +
- scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + 
- theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-ggplot(noDedupl_dataLong, aes(x = Sample, y = Quantity, fill = Subsampling)) +
- geom_bar(stat = "identity", position = position_dodge(width = 1)) +
- facet_grid(Metric~Deduplicated., scales = "free") +
- geom_text(aes(label = Quantity), position = position_dodge(width = 1),
-           vjust = -0.5, hjust = 0.5, size = 3) + 
- labs(title = "Subsampling Paired Read Statistics", x = "Sample", y = "Read Count") +
- scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
- theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplot(bowtie_dataLong, aes(x = Subsampling.Depth, y = Quantity, fill = Subsampling.Depth)) +
+   geom_bar(stat = "identity", position = position_dodge(width = 1)) +
+   facet_grid(Metric~Sample, scales = "free") +
+   geom_text(aes(label = Quantity), position = position_dodge(width = 1),
+             vjust = -0.5, hjust = 0.5, size = 3.25, fontface = "bold") + 
+   labs(title = "Output of Subsampling from Bowtie2 Alignment Reads", 
+        x = "Sample") +
+   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 # mapping stats ---------------------------------------------------------------------

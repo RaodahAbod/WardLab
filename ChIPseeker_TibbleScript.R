@@ -45,7 +45,7 @@ tibble_anno_enrichGO3 <- enrichGO(gene = anno_genes_peaks, OrgDb = "org.Hs.eg.db
 # Save As Tibble --------------------------------------------------------------------
 # View the top enriched GO terms as a tibble
 GO_Tibble <- tibble_anno_enrichGO3 %>% as_tibble()
-GO_Tibble
+#GO_Tibble
 # Arrange by adjusted p value
 GO_Tibble <- GO_Tibble %>%
  arrange(desc(p.adjust))
