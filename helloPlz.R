@@ -1,6 +1,0 @@
-rm(list = ls())
-setwd("C:/Users/raoda/Desktop/R Stuff/CUT&Tag Processing")
-library(tidyverse)
-library(dplyr)
-library(ComplexHeatmap)
-library(circlize)
