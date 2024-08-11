@@ -11,7 +11,7 @@ library(ggrepel)
 library(ggfortify)
 library(circlize)
 
-#  Rearrange GFF file? --------------------------------------------------------------
+#  Rearrange 'GFF' and change to an SAF file --------------------------------------------------------------
 loc <- choose.files()
 file <- read.table(loc)
 name <- basename(loc)
@@ -23,8 +23,12 @@ write.table(newFile, fileName ,row.names = F ,col.names = F ,
 
 # FeatureCounts ---------------------------------------------------------------------
 
+# this will prompt you to enter a number
 numOfFiles <- readline(prompt = "Enter the number of bam files you are using: ")
 bam_files <- c()
+
+# will iterate through the number you specified above and store all your bam file locations
+# from your computer. 
 for(c in 1:numOfFiles){
 bam_files[c] <- choose.files()
 }
@@ -32,6 +36,8 @@ bam_files[c] <- choose.files()
 # bam_files to avoid having to reload all files one by one if working with a large
 # dataset. 
 
+
+# a master variable containing all the sample names of your data set. 
 dataName <- c("87-1 DNR3", "87-1 DNR24",
               "87-1 DOX3", "87-1 DOX24", 
               "87-1 MTX3", "87-1 MTX24",
@@ -61,6 +67,11 @@ dataName <- c("87-1 DNR3", "87-1 DNR24",
               "71-1 MTX3", "71-1 MTX24",
               "71-1 VEH3", "71-1 VEH24") 
 
+# creates a base variable to store sample metadata/characteristics
+# the following few lines will assign values to the columns based on the sample name. 
+# i.e: 71-1 DOX 24 anthra col will be YES, time col will be 24H, trt will be DOX and indiv
+# will be 5. 
+
 characteristics <- data.frame(dataName)
 characteristics <- mutate(characteristics, anthracycline =NA, time =NA, 
                           trt=NA, indiv=NA)
@@ -86,6 +97,8 @@ characteristics <- characteristics %>%
                               ifelse(grepl("79", dataName), '79-1',
                                      ifelse(grepl("78", dataName), '78-1', '71-1')))))
 
+# feature counts will run through all samples you have and store everything in its own
+# renamed variable using the large dataname variable created above. 
 annot_file <- choose.files() #load in saf file
 for (x in 1:numOfFiles){
 featureCountsTrial <- featureCounts(files = bam_files[x], annot.ext = annot_file,
@@ -95,6 +108,7 @@ featureCountsTrial <- featureCounts(files = bam_files[x], annot.ext = annot_file
 assign(dataName[x],featureCountsTrial)
 }
 
+# manually assigning all the count information into one big count matrix. 
 counts <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
                      `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
                      `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
@@ -124,11 +138,15 @@ counts <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]],
                      `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
                      `71-1 VEH3`[[1]],`71-1 VEH24`[[1]])
 
+# renames the columns to be the name of each of the samples. for easy identification. 
 colnames(counts) <- dataName
-rownames(counts) <- featureLoc$chrLoc
 
+# this is an optimization step that can allow us to filter out any lowly expressed regions
+# accross all samples. 
 row_means <- rowMeans(counts)
 counts_filtered <- counts[row_means > 10,]
+# this filtered count matrix can be passed through the heat map function and be visualized, 
+# similar to the other count matrices in this script. 
 
 #-----
 # Define color mappings with named levels
@@ -145,17 +163,17 @@ heatChar <- HeatmapAnnotation(
  AC = anno_simple(characteristics$anthracycline, col = AC_colors)
 )
  
-#these two heatmaps are identical
+# generating the correlation heatmap. 
 cpm_highConf <- counts %>% 
  cpm(., log = TRUE) %>% 
  cor(method = "spearman")
-htmp3 <- Heatmap(as.matrix(cpm_highConf), width = unit(12, "cm"),column_title = 
+corHtmp <- Heatmap(as.matrix(cpm_highConf), width = unit(12, "cm"),column_title = 
                  'CPM Spearman Correlation of Cardiotox Treatment Groups
                    High Confidence Peak Set >= 2 Peaks', 
                 top_annotation = heatChar)
-htmp3@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp3@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp3
+corHtmp@column_names_param[["gp"]][["fontsize"]] <- 8
+corHtmp@row_names_param[["gp"]][["fontsize"]] <- 8
+corHtmp
 
 # Excluding Low peak Count Samples --------------------------------------------------
 
@@ -163,109 +181,109 @@ htmp3
 #77-1 VEH24, 79-1 DOX3, 79-1 EPI3, 79-1 MTX3, 79-1 VEH3
 #79-1 VEH24, 78-1 MTX24, 78-1 VEH3, 78-1 VEH24
 
-dataName2 <- c("87-1 DNR3", "87-1 DNR24",
-               "87-1 DOX3", "87-1 DOX24", 
-               "87-1 MTX3", "87-1 MTX24",
-               "87-1 VEH3", "87-1 VEH24",
+dataName_lowPeaks <- c("87-1 DNR3", "87-1 DNR24",
+                       "87-1 DOX3", "87-1 DOX24", 
+                       "87-1 MTX3", "87-1 MTX24",
+                       "87-1 VEH3", "87-1 VEH24",
                
-               "77-1 DNR3", "77-1 DNR24",
-               "77-1 DOX3",
-               "77-1 EPI3", "77-1 EPI24", 
-               "77-1 MTX24",
-               "77-1 VEH3",
+                       "77-1 DNR3", "77-1 DNR24",
+                       "77-1 DOX3",
+                       "77-1 EPI3", "77-1 EPI24", 
+                       "77-1 MTX24",
+                       "77-1 VEH3",
                
-               "79-1 DNR3", "79-1 DNR24",
-               "79-1 DOX24",
-               "79-1 EPI24", 
-               "79-1 MTX24",
+                       "79-1 DNR3", "79-1 DNR24",
+                       "79-1 DOX24",
+                       "79-1 EPI24", 
+                       "79-1 MTX24",
                
-               "78-1 DNR3", "78-1 DNR24",
-               "78-1 DOX3", "78-1 DOX24",
-               "78-1 EPI3", "78-1 EPI24", 
-               "78-1 MTX3",
+                       "78-1 DNR3", "78-1 DNR24",
+                       "78-1 DOX3", "78-1 DOX24",
+                       "78-1 EPI3", "78-1 EPI24", 
+                       "78-1 MTX3",
                
-               "71-1 DNR3", "71-1 DNR24",
-               "71-1 DOX24",
-               "71-1 EPI3", "71-1 EPI24", 
-               "71-1 MTX3", "71-1 MTX24",
-               "71-1 VEH3", "71-1 VEH24")
+                       "71-1 DNR3", "71-1 DNR24",
+                       "71-1 DOX24",
+                       "71-1 EPI3", "71-1 EPI24", 
+                       "71-1 MTX3", "71-1 MTX24",
+                       "71-1 VEH3", "71-1 VEH24")
 
-highConfChar <- data.frame(dataName2)
-highConfChar <- mutate(highConfChar, anthracycline =NA, time =NA, 
+char_lowPeaks <- data.frame(dataName_lowPeaks)
+char_lowPeaks <- mutate(char_lowPeaks, anthracycline =NA, time =NA, 
                           trt=NA, indiv=NA)
 
 # Update the anthracycline column based on the conditions
-highConfChar <- highConfChar %>%
- mutate(anthracycline = ifelse(grepl("VEH", dataName2) | grepl("MTX", dataName2), 'NO', 'YES'))
+char_lowPeaks <- char_lowPeaks %>%
+ mutate(anthracycline = ifelse(grepl("VEH", dataName_lowPeaks) | 
+                                 grepl("MTX", dataName_lowPeaks), 'NO', 'YES'))
 
-highConfChar <- highConfChar %>%
- mutate(time = ifelse(grepl("3", dataName2), '3H', '24H'))
-
-# Update the trt column based on the conditions
-highConfChar <- highConfChar %>%
- mutate(trt = ifelse(grepl("DOX", dataName2), 'DOX',
-                     ifelse(grepl("DNR", dataName2), 'DNR',
-                            ifelse(grepl("EPI", dataName2), 'EPI',
-                                   ifelse(grepl("MTX", dataName2), 'MTX', 'VEH')))))
+char_lowPeaks <- char_lowPeaks %>%
+ mutate(time = ifelse(grepl("3", dataName_lowPeaks), '3H', '24H'))
 
 # Update the trt column based on the conditions
-highConfChar <- highConfChar %>%
- mutate(indiv = ifelse(grepl("87", dataName2), '87-1',
-                       ifelse(grepl("77", dataName2), '77-1',
-                              ifelse(grepl("79", dataName2), '79-1',
-                                     ifelse(grepl("78", dataName2), '78-1', '71-1')))))
+char_lowPeaks <- char_lowPeaks %>%
+ mutate(trt = ifelse(grepl("DOX", dataName_lowPeaks), 'DOX',
+                     ifelse(grepl("DNR", dataName_lowPeaks), 'DNR',
+                            ifelse(grepl("EPI", dataName_lowPeaks), 'EPI',
+                                   ifelse(grepl("MTX", dataName_lowPeaks), 'MTX', 'VEH')))))
+
+# Update the trt column based on the conditions
+char_lowPeaks <- char_lowPeaks %>%
+ mutate(indiv = ifelse(grepl("87", dataName_lowPeaks), '87-1',
+                       ifelse(grepl("77", dataName_lowPeaks), '77-1',
+                              ifelse(grepl("79", dataName_lowPeaks), '79-1',
+                                     ifelse(grepl("78", dataName_lowPeaks), '78-1', '71-1')))))
 
 
-counts2 <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
-                     `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
-                     `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
-                     `87-1 VEH3`[[1]],`87-1 VEH24`[[1]],
+counts_lowPeaks <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
+                              `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
+                              `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
+                              `87-1 VEH3`[[1]],`87-1 VEH24`[[1]],
                      
-                     `77-1 DNR3`[[1]],`77-1 DNR24`[[1]], 
-                     `77-1 DOX3`[[1]],
-                     `77-1 EPI3`[[1]],`77-1 EPI24`[[1]], 
-                     `77-1 MTX24`[[1]],
-                     `77-1 VEH3`[[1]],
+                              `77-1 DNR3`[[1]],`77-1 DNR24`[[1]], 
+                              `77-1 DOX3`[[1]],
+                              `77-1 EPI3`[[1]],`77-1 EPI24`[[1]], 
+                              `77-1 MTX24`[[1]],
+                              `77-1 VEH3`[[1]],
                      
-                     `79-1 DNR3`[[1]],`79-1 DNR24`[[1]], 
-                     `79-1 DOX24`[[1]],
-                     `79-1 EPI24`[[1]], 
-                     `79-1 MTX24`[[1]],
+                              `79-1 DNR3`[[1]],`79-1 DNR24`[[1]], 
+                              `79-1 DOX24`[[1]],
+                              `79-1 EPI24`[[1]], 
+                              `79-1 MTX24`[[1]],
                      
-                     `78-1 DNR3`[[1]],`78-1 DNR24`[[1]], 
-                     `78-1 DOX3`[[1]],`78-1 DOX24`[[1]],
-                     `78-1 EPI3`[[1]],`78-1 EPI24`[[1]], 
-                     `78-1 MTX3`[[1]],
+                              `78-1 DNR3`[[1]],`78-1 DNR24`[[1]], 
+                              `78-1 DOX3`[[1]],`78-1 DOX24`[[1]],
+                              `78-1 EPI3`[[1]],`78-1 EPI24`[[1]], 
+                              `78-1 MTX3`[[1]],
                      
-                     `71-1 DNR3`[[1]],`71-1 DNR24`[[1]], 
-                     `71-1 DOX24`[[1]],
-                     `71-1 EPI3`[[1]],`71-1 EPI24`[[1]], 
-                     `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
-                     `71-1 VEH3`[[1]],`71-1 VEH24`[[1]])
+                              `71-1 DNR3`[[1]],`71-1 DNR24`[[1]], 
+                              `71-1 DOX24`[[1]],
+                              `71-1 EPI3`[[1]],`71-1 EPI24`[[1]], 
+                              `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
+                              `71-1 VEH3`[[1]],`71-1 VEH24`[[1]])
 
-colnames(counts2) <- dataName2
-rownames(counts2) <- featureLoc$chrLoc
+colnames(counts_lowPeaks) <- dataName_lowPeaks
 
-cor_noLowConf <- cor(counts2, method = "spearman") # rounded to 2 decimals
+cor_lowPeaks <- cor(counts_lowPeaks, method = "spearman") # rounded to 2 decimals
 
 # Define column annotations using named colors
-heatChar_highconf <- HeatmapAnnotation(
-  trt = anno_simple(highConfChar$trt, col = trt_colors),
-  indiv = anno_simple(highConfChar$indiv, col = indiv_colors),
-  time = anno_simple(highConfChar$time, col = time_colors),
-  AC = anno_simple(highConfChar$anthracycline, col = AC_colors)
+heatChar_lowPeaks <- HeatmapAnnotation(
+  trt = anno_simple(char_lowPeaks$trt, col = trt_colors),
+  indiv = anno_simple(char_lowPeaks$indiv, col = indiv_colors),
+  time = anno_simple(char_lowPeaks$time, col = time_colors),
+  AC = anno_simple(char_lowPeaks$anthracycline, col = AC_colors)
 )
 
 #-------
 
-htmp2 <- Heatmap(as.matrix(cor_noLowConf), width = unit(12, "cm"),column_title = 
+htmp_lowPeaks <- Heatmap(as.matrix(cor_lowPeaks), width = unit(12, "cm"),column_title = 
                    'Spearman Correlation of Cardiotox Treatment Groups 
                  Excluding Samples with Low Peak Count
-                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_highconf,
+                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_lowPeaks,
 )
-htmp2@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp2@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp2
+htmp_lowPeaks@column_names_param[["gp"]][["fontsize"]] <- 8
+htmp_lowPeaks@row_names_param[["gp"]][["fontsize"]] <- 8
+htmp_lowPeaks
 
 # Extracting total 14 samples -------------------------------------------------------
 #this excludes samples with fewer than 1.5K peaks. those samples are
@@ -274,115 +292,116 @@ htmp2
 #78-1 DNR24,78-1 DOX3, 78-1 EPI24, 78-1 MTX24, 78-1 VEH3, 78-1 VEH24
 #71-1 VEH3
 
-dataName3 <- c("87-1 DNR3", "87-1 DNR24",
-               "87-1 DOX3", "87-1 DOX24", 
-               "87-1 MTX3", "87-1 MTX24",
-               "87-1 VEH3", "87-1 VEH24",
+dataName_strict <- c("87-1 DNR3", "87-1 DNR24",
+                     "87-1 DOX3", "87-1 DOX24", 
+                     "87-1 MTX3", "87-1 MTX24",
+                     "87-1 VEH3", "87-1 VEH24",
                
-               "77-1 DNR3", "77-1 DNR24",
-               "77-1 DOX3",
-               "77-1 EPI3", "77-1 EPI24", 
-               "77-1 MTX24",
-               "77-1 VEH3",
+                     "77-1 DNR3", "77-1 DNR24",
+                     "77-1 DOX3",
+                     "77-1 EPI3", "77-1 EPI24", 
+                     "77-1 MTX24",
+                     "77-1 VEH3",
+                     
+                     "79-1 DNR3", "79-1 DNR24",
+                     "79-1 EPI24", 
+                     "79-1 MTX24",
+                     
+                     "78-1 DNR3", 
+                     "78-1 DOX24",
+                     "78-1 EPI3",  
+                     "78-1 MTX3",
                
-               "79-1 DNR3", "79-1 DNR24",
-               "79-1 EPI24", 
-               "79-1 MTX24",
-               
-               "78-1 DNR3", 
-               "78-1 DOX24",
-               "78-1 EPI3",  
-               "78-1 MTX3",
-               
-               "71-1 DNR3", "71-1 DNR24",
-               "71-1 DOX24",
-               "71-1 EPI3", "71-1 EPI24", 
-               "71-1 MTX3", "71-1 MTX24",
-               "71-1 VEH24")
+                     "71-1 DNR3", "71-1 DNR24",
+                     "71-1 DOX24",
+                     "71-1 EPI3", "71-1 EPI24", 
+                     "71-1 MTX3", "71-1 MTX24",
+                     "71-1 VEH24")
 
-highConfChar2 <- data.frame(dataName3)
-highConfChar2 <- mutate(highConfChar2, anthracycline =NA, time =NA, 
+char_strict <- data.frame(dataName_strict)
+char_strict <- mutate(char_strict, anthracycline =NA, time =NA, 
                        trt=NA, indiv=NA)
 
 # Update the anthracycline column based on the conditions
-highConfChar2 <- highConfChar2 %>%
-  mutate(anthracycline = ifelse(grepl("VEH", dataName3) | grepl("MTX", dataName3), 'NO', 'YES'))
+char_strict <- char_strict %>%
+  mutate(anthracycline = ifelse(grepl("VEH", dataName_strict) | 
+                                  grepl("MTX", dataName_strict), 'NO', 'YES'))
 
-highConfChar2 <- highConfChar2 %>%
-  mutate(time = ifelse(grepl("3", dataName3), '3H', '24H'))
-
-# Update the trt column based on the conditions
-highConfChar2 <- highConfChar2 %>%
-  mutate(trt = ifelse(grepl("DOX", dataName3), 'DOX',
-                      ifelse(grepl("DNR", dataName3), 'DNR',
-                             ifelse(grepl("EPI", dataName3), 'EPI',
-                                    ifelse(grepl("MTX", dataName3), 'MTX', 'VEH')))))
+char_strict <- char_strict %>%
+  mutate(time = ifelse(grepl("3", dataName_strict), '3H', '24H'))
 
 # Update the trt column based on the conditions
-highConfChar2 <- highConfChar2 %>%
-  mutate(indiv = ifelse(grepl("87", dataName3), '87-1',
-                        ifelse(grepl("77", dataName3), '77-1',
-                               ifelse(grepl("79", dataName3), '79-1',
-                                      ifelse(grepl("78", dataName3), '78-1', '71-1')))))
+char_strict <- char_strict %>%
+  mutate(trt = ifelse(grepl("DOX", dataName_strict), 'DOX',
+                      ifelse(grepl("DNR", dataName_strict), 'DNR',
+                             ifelse(grepl("EPI", dataName_strict), 'EPI',
+                                    ifelse(grepl("MTX", dataName_strict), 'MTX', 'VEH')))))
+
+# Update the trt column based on the conditions
+char_strict <- char_strict %>%
+  mutate(indiv = ifelse(grepl("87", dataName_strict), '87-1',
+                        ifelse(grepl("77", dataName_strict), '77-1',
+                               ifelse(grepl("79", dataName_strict), '79-1',
+                                      ifelse(grepl("78", dataName_strict), '78-1', '71-1')))))
 
 
-counts3 <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
-                      `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
-                      `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
-                      `87-1 VEH3`[[1]],`87-1 VEH24`[[1]],
+counts_strict <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
+                            `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
+                            `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
+                            `87-1 VEH3`[[1]],`87-1 VEH24`[[1]],
                       
-                      `77-1 DNR3`[[1]],`77-1 DNR24`[[1]], 
-                      `77-1 DOX3`[[1]],
-                      `77-1 EPI3`[[1]],`77-1 EPI24`[[1]], 
-                      `77-1 MTX24`[[1]],
-                      `77-1 VEH3`[[1]],
+                            `77-1 DNR3`[[1]],`77-1 DNR24`[[1]], 
+                            `77-1 DOX3`[[1]],
+                            `77-1 EPI3`[[1]],`77-1 EPI24`[[1]], 
+                            `77-1 MTX24`[[1]],
+                            `77-1 VEH3`[[1]],
                       
-                      `79-1 DNR3`[[1]],`79-1 DNR24`[[1]],
-                      `79-1 EPI24`[[1]], 
-                      `79-1 MTX24`[[1]],
+                            `79-1 DNR3`[[1]],`79-1 DNR24`[[1]],
+                            `79-1 EPI24`[[1]], 
+                            `79-1 MTX24`[[1]],
                       
-                      `78-1 DNR3`[[1]],
-                      `78-1 DOX24`[[1]],
-                      `78-1 EPI3`[[1]], 
-                      `78-1 MTX3`[[1]],
-                      
-                      `71-1 DNR3`[[1]],`71-1 DNR24`[[1]], 
-                      `71-1 DOX24`[[1]],
-                      `71-1 EPI3`[[1]],`71-1 EPI24`[[1]], 
-                      `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
-                      `71-1 VEH24`[[1]])
+                            `78-1 DNR3`[[1]],
+                            `78-1 DOX24`[[1]],
+                            `78-1 EPI3`[[1]], 
+                            `78-1 MTX3`[[1]],
+                            
+                            `71-1 DNR3`[[1]],`71-1 DNR24`[[1]], 
+                            `71-1 DOX24`[[1]],
+                            `71-1 EPI3`[[1]],`71-1 EPI24`[[1]], 
+                            `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
+                            `71-1 VEH24`[[1]])
 
-colnames(counts3) <- dataName3
+colnames(counts_strict) <- dataName_strict
 
-cor_noLowConf2 <- cor(counts3, method = "spearman") # rounded to 2 decimals
+cor_strict <- cor(counts_strict, method = "spearman") # rounded to 2 decimals
 
 
-heatChar_minus12 <- HeatmapAnnotation(
-  trt = anno_simple(highConfChar2$trt, col = trt_colors),
-  indiv = anno_simple(highConfChar2$indiv, col = indiv_colors),
-  time = anno_simple(highConfChar2$time, col = time_colors),
-  AC = anno_simple(highConfChar2$anthracycline, col = AC_colors)
+heatChar_strict <- HeatmapAnnotation(
+  trt = anno_simple(char_strict$trt, col = trt_colors),
+  indiv = anno_simple(char_strict$indiv, col = indiv_colors),
+  time = anno_simple(char_strict$time, col = time_colors),
+  AC = anno_simple(char_strict$anthracycline, col = AC_colors)
 )
-htmp_minus12 <- Heatmap(as.matrix(cor_noLowConf2), width = unit(12, "cm"),column_title = 
+htmp_strict <- Heatmap(as.matrix(cor_strict), width = unit(12, "cm"),column_title = 
                    'Spearman Correlation of Cardiotox Treatment Groups 
                  Excluding 12 Samples with <1.5K Peaks
-                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_minus12,
-)
-htmp_minus12@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12
+                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_strict)
 
-row_means2 <- rowMeans(counts3)
-counts_filtered2 <- counts3[row_means2 > 10,]
+htmp_strict@column_names_param[["gp"]][["fontsize"]] <- 8
+htmp_strict@row_names_param[["gp"]][["fontsize"]] <- 8
+htmp_strict
 
-cor_noLowConf2_filt <- cor(counts_filtered2, method = "spearman") # rounded to 2 decimals
+row_means_strict <- rowMeans(counts_strict)
+counts_filtered_strict <- counts_strict[row_means_strict > 10,]
 
-htmp_minus12_filt <- Heatmap(as.matrix(cor_noLowConf2_filt), width = unit(12, "cm"),column_title = 
+cor_strict_filt <- cor(counts_filtered_strict, method = "spearman") # rounded to 2 decimals
+
+htmp_strict_filt <- Heatmap(as.matrix(cor_strict_filt), width = unit(12, "cm"),column_title = 
                           'Spearman Correlation of Cardiotox Treatment Groups 
                  Excluding 12 Samples with <1.5K Peaks
                  Filtered for Mean Peak Counts of >10
-                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_minus12,
-)
-htmp_minus12_filt@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12_filt@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12_filt
+                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_strict)
+
+htmp_strict_filt@column_names_param[["gp"]][["fontsize"]] <- 8
+htmp_strict_filt@row_names_param[["gp"]][["fontsize"]] <- 8
+htmp_strict_filt
