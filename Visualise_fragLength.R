@@ -5,6 +5,10 @@ library(dplyr)
 library(viridis)
 
 
+# Create a variable that stores the names for each individual sample.
+# I have separated mine by individual to use as a means of grouping during
+# final plotting
+
 sampleList_87 <- c("87-1 DNR3", "87-1 DNR24",
                    "87-1 DOX3", "87-1 DOX24", 
                    "87-1 MTX3", "87-1 MTX24",
@@ -34,9 +38,15 @@ sampleList_71 <- c("71-1 DNR3", "71-1 DNR24",
                    "71-1 MTX3", "71-1 MTX24",
                    "71-1 VEH3", "71-1 VEH24")
 
+# the following loops have the same setup
+# create an empty variable where you will store your loaded metadata
 fragLen_87 <- c()
+
+# loop will iterate the variable 'sample' for each element in your sample name variable
 for(sample in sampleList_87){
         histInfo = "H3K27ac"
+        # read.table() will open a window every time for each new file. 
+        # this will continue for the entire length of your variable.
         fragLen_87 = read.table(choose.files(), header = FALSE) %>% 
                 mutate(fragLen = V1 %>% as.numeric, 
                        fragCount = V2 %>% as.numeric, 
@@ -89,8 +99,14 @@ for(sample in sampleList_71){
   rbind(fragLen_71, .) 
 }
 
+# combines all individuals together into one master variable. 
 fragLen <- rbind(fragLen_87,fragLen_77,fragLen_79,fragLen_78,fragLen_71)
+
+# transforms the master variable in a form more friendly to manipulation. 
 holder <- as.data.frame(fragLen$sampleInfo)
+
+# creating a separate variable to hold explicit sample metadata such as time and treatment
+# for aid in final plotting. 
 test <- holder %>% separate(col = `fragLen$sampleInfo`,
                             into = c(NA, "treatment"), sep = " ")
 final <- test %>% mutate(treat = ifelse(grepl("DOX", test$treatment), 'DOX',
@@ -99,15 +115,24 @@ final <- test %>% mutate(treat = ifelse(grepl("DOX", test$treatment), 'DOX',
                                      ifelse(grepl("MTX", test$treatment), 'MTX', 'VEH'))))) %>%
                   mutate(time = ifelse(grepl("3", test$treatment), '3H', '24H'))
 
+# combines variable holding metadata with the master variable holding fragment
+# length information
 fragLen <- cbind(fragLen, final)
 
+# factoring will put metadata in the order I desire. It will order characteristics based
+# on sequence. i.e: it will be ordered by individual first, then treatment, then time. 
 fragLen$Indv <- factor(fragLen$Indv, levels = c("87-1","77-1","79-1","78-1","71-1"))
 fragLen$treatment <- factor(fragLen$treatment, 
                             levels = c("DNR3","DOX3","EPI3","MTX3","VEH3",
                                        "DNR24","DOX24","EPI24","MTX24","VEH24"))
+fragLen$time <- factor(fragLen$time, levels = c("3H","24H"))
 
+# specified colors correlating to my metadata
 trt_colors <- c(DNR = "#F1B72B", DOX = "#8B006D", EPI = "#DF707E", MTX = "#3386DD", VEH = "#41B333")
 
+
+#ggplot plotting fragment length distribution. Tunable variable is fill, facet_wrap, and 
+# scale fill manual. tuning other variables may alter the outcome of the ggplot figure. 
 fragViolinPlot <- fragLen %>%
         ggplot(aes(x = time, y = fragLen, weight = Weight, fill = treat)) +
         geom_violin(bw = 5, alpha = 0.8) +
@@ -119,6 +144,7 @@ fragViolinPlot <- fragLen %>%
         ylab("Fragment Length [bp]") +
         xlab("Treatment and Time") + theme_grey()
 
+# this angles the text labels on the x axis
 fragViolinPlot + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
  #theme(legend.position = "none") +
  ggtitle("Fragment Length of Carditoxicity Libraries Grouped by Individual") 
