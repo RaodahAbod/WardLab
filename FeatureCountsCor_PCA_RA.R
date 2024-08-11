@@ -11,7 +11,7 @@ library(ggrepel)
 library(ggfortify)
 library(circlize)
 
-#  Rearrange GFF file? --------------------------------------------------------------
+#  Rearrange 'GFF' and change to an SAF file --------------------------------------------------------------
 loc <- choose.files()
 file <- read.table(loc)
 name <- basename(loc)
@@ -22,15 +22,22 @@ write.table(newFile, fileName ,row.names = F ,col.names = F ,
             sep="\t" , quote=FALSE) 
 
 # FeatureCounts ---------------------------------------------------------------------
-# annot_file <- readGFFFeatures(choose.files())
 
+# this will prompt you to enter a number
 numOfFiles <- readline(prompt = "Enter the number of bam files you are using: ")
 bam_files <- c()
+
+# will iterate through the number you specified above and store all your bam file locations
+# from your computer. 
 for(c in 1:numOfFiles){
 bam_files[c] <- choose.files()
 }
+# at this point, you can save your R workspace/R environment with the variable
+# bam_files to avoid having to reload all files one by one if working with a large
+# dataset. 
 
 
+# a master variable containing all the sample names of your data set. 
 dataName <- c("87-1 DNR3", "87-1 DNR24",
               "87-1 DOX3", "87-1 DOX24", 
               "87-1 MTX3", "87-1 MTX24",
@@ -60,6 +67,10 @@ dataName <- c("87-1 DNR3", "87-1 DNR24",
               "71-1 MTX3", "71-1 MTX24",
               "71-1 VEH3", "71-1 VEH24") 
 
+# creates a base variable to store sample metadata/characteristics
+# the following few lines will assign values to the columns based on the sample name. 
+# i.e: 71-1 DOX 24 anthra col will be YES, time col will be 24H, trt will be DOX and indiv
+# will be 5. 
 characteristics <- data.frame(dataName)
 characteristics <- mutate(characteristics, anthracycline =NA, time =NA, 
                           trt=NA, indiv=NA)
@@ -85,6 +96,8 @@ characteristics <- characteristics %>%
                               ifelse(grepl("79", dataName), '79-1',
                                      ifelse(grepl("78", dataName), '78-1', '71-1')))))
 
+# feature counts will run through all samples you have and store everything in its own
+# renamed variable using the large dataname variable created above. 
 annot_file <- choose.files() #load in saf file
 for (x in 1:numOfFiles){
 featureCountsTrial <- featureCounts(files = bam_files[x], annot.ext = annot_file,
@@ -94,9 +107,13 @@ featureCountsTrial <- featureCounts(files = bam_files[x], annot.ext = annot_file
 assign(dataName[x],featureCountsTrial)
 }
 
+# extracts the chromosome position into a variable. This will be helpful
+# in performing the counts boxplot later in the script. 
+# it will aid in locating the nearest gene to the peak chromosome location
 chrPos <- data.frame(featureCountsTrial[1:2])
 featureLoc <- chrPos %>% select(2:5) %>% unite("chrLoc",2:4,sep = ".")
 
+# manually assigning all the count information into one big count matrix. 
 counts <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
                      `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
                      `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
@@ -126,15 +143,18 @@ counts <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]],
                      `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
                      `71-1 VEH3`[[1]],`71-1 VEH24`[[1]])
 
-
+# renames the columns to be the name of each of the samples. for easy identification. 
 colnames(counts) <- dataName
+#renames the rows as the chromosome location rather than 'feature', which is nonspecific
 rownames(counts) <- featureLoc$chrLoc
 
-row_means <- rowMeans(counts)
-counts_filtered <- counts[row_means > 10,]
-#dim(x_filtered)
 
-#-----
+# this is an optimization step that can allow us to filter out any lowly expressed regions
+# across all samples. row_means <- rowMeans(counts)
+counts_filtered <- counts[row_means > 10,]
+# this filtered count matrix can be passed through the heat map function and be visualized, 
+# similar to the other count matrices in this script. 
+
 # Define color mappings with named levels
 trt_colors <- c(DNR = "#F1B72B", DOX = "#8B006D", EPI = "#DF707E", MTX = "#3386DD", VEH = "#41B333")
 indiv_colors <- c(`87-1` = "#1B9E77", `77-1` = "#D95F02", `79-1` = "#7570B3", `78-1` = "#E7298A", `71-1` = "#66A61E", indiv6 = "#E6AB02")
@@ -148,230 +168,26 @@ heatChar <- HeatmapAnnotation(
  time = anno_simple(characteristics$time, col = time_colors),
  AC = anno_simple(characteristics$anthracycline, col = AC_colors)
 )
- 
-#-------
 
-testit <- cor(counts, method = "spearman") # rounded to 2 decimals
-htmp <- Heatmap(as.matrix(testit), width = unit(12, "cm"),column_title = 
+# generating the correlation heatmap. 
+cpm_cor_3pks <- counts %>% 
+  cpm(., log = TRUE) %>% 
+  cor(method = "spearman")
+htmp_3pks <- Heatmap(as.matrix(cpm_cor_3pks), width = unit(12, "cm"),column_title = 
                  'Spearman Correlation of Cardiotox Treatment Groups
                 High Confidence Peak Set >= 3 Peaks', 
                 top_annotation = heatChar)
-htmp@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp
-
-
-#these two heatmaps are identical
-cpm_highConf <- counts %>% 
- cpm(., log = TRUE) %>% 
- cor(method = "spearman")
-htmp3 <- Heatmap(as.matrix(cpm_highConf), width = unit(12, "cm"),column_title = 
-                 'CPM Spearman Correlation of Cardiotox Treatment Groups
-                   High Confidence Peak Set >= 2 Peaks', 
-                top_annotation = heatChar)
-htmp3@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp3@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp3
-
-#removing rowmeans = 0
-cpmFilt_highConf <- counts_filtered %>% 
-  cpm(., log = TRUE) %>% 
-  cor(method = "spearman")
-htmp_filt <- Heatmap(as.matrix(cpmFilt_highConf), width = unit(12, "cm"),column_title = 
-                   'CPM Spearman Correlation of Cardiotox Treatment Groups
-                   High Confidence Peak Set >= 2 Peaks', 
-                 top_annotation = heatChar)
-htmp_filt@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp_filt@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp_filt
-
-
-# Excluding Low peak Count Samples --------------------------------------------------
-
-#this excludes samples with fewer than 200 peaks. those samples are
-#77-1 VEH24, 79-1 DOX3, 79-1 EPI3, 79-1 MTX3, 79-1 VEH3
-#79-1 VEH24, 78-1 MTX24, 78-1 VEH3, 78-1 VEH24
-
-dataName2 <- c("87-1 DNR3", "87-1 DNR24",
-               "87-1 DOX3", "87-1 DOX24", 
-               "87-1 MTX3", "87-1 MTX24",
-               "87-1 VEH3", "87-1 VEH24",
-               
-               "77-1 DNR3", "77-1 DNR24",
-               "77-1 DOX3",
-               "77-1 EPI3", "77-1 EPI24", 
-               "77-1 MTX24",
-               "77-1 VEH3",
-               
-               "79-1 DNR3", "79-1 DNR24",
-               "79-1 DOX24",
-               "79-1 EPI24", 
-               "79-1 MTX24",
-               
-               "78-1 DNR3", "78-1 DNR24",
-               "78-1 DOX3", "78-1 DOX24",
-               "78-1 EPI3", "78-1 EPI24", 
-               "78-1 MTX3",
-               
-               "71-1 DNR3", "71-1 DNR24",
-               "71-1 DOX24",
-               "71-1 EPI3", "71-1 EPI24", 
-               "71-1 MTX3", "71-1 MTX24",
-               "71-1 VEH3", "71-1 VEH24")
-
-highConfChar <- data.frame(dataName2)
-highConfChar <- mutate(highConfChar, anthracycline =NA, time =NA, 
-                          trt=NA, indiv=NA)
-
-# Update the anthracycline column based on the conditions
-highConfChar <- highConfChar %>%
- mutate(anthracycline = ifelse(grepl("VEH", dataName2) | grepl("MTX", dataName2), 'NO', 'YES'))
-
-highConfChar <- highConfChar %>%
- mutate(time = ifelse(grepl("3", dataName2), '3H', '24H'))
-
-# Update the trt column based on the conditions
-highConfChar <- highConfChar %>%
- mutate(trt = ifelse(grepl("DOX", dataName2), 'DOX',
-                     ifelse(grepl("DNR", dataName2), 'DNR',
-                            ifelse(grepl("EPI", dataName2), 'EPI',
-                                   ifelse(grepl("MTX", dataName2), 'MTX', 'VEH')))))
-
-# Update the trt column based on the conditions
-highConfChar <- highConfChar %>%
- mutate(indiv = ifelse(grepl("87", dataName2), '87-1',
-                       ifelse(grepl("77", dataName2), '77-1',
-                              ifelse(grepl("79", dataName2), '79-1',
-                                     ifelse(grepl("78", dataName2), '78-1', '71-1')))))
-
-
-counts2 <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
-                     `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
-                     `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
-                     `87-1 VEH3`[[1]],`87-1 VEH24`[[1]],
-                     
-                     `77-1 DNR3`[[1]],`77-1 DNR24`[[1]], 
-                     `77-1 DOX3`[[1]],
-                     `77-1 EPI3`[[1]],`77-1 EPI24`[[1]], 
-                     `77-1 MTX24`[[1]],
-                     `77-1 VEH3`[[1]],
-                     
-                     `79-1 DNR3`[[1]],`79-1 DNR24`[[1]], 
-                     `79-1 DOX24`[[1]],
-                     `79-1 EPI24`[[1]], 
-                     `79-1 MTX24`[[1]],
-                     
-                     `78-1 DNR3`[[1]],`78-1 DNR24`[[1]], 
-                     `78-1 DOX3`[[1]],`78-1 DOX24`[[1]],
-                     `78-1 EPI3`[[1]],`78-1 EPI24`[[1]], 
-                     `78-1 MTX3`[[1]],
-                     
-                     `71-1 DNR3`[[1]],`71-1 DNR24`[[1]], 
-                     `71-1 DOX24`[[1]],
-                     `71-1 EPI3`[[1]],`71-1 EPI24`[[1]], 
-                     `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
-                     `71-1 VEH3`[[1]],`71-1 VEH24`[[1]])
-
-colnames(counts2) <- dataName2
-rownames(counts2) <- featureLoc$chrLoc
-
-cor_noLowConf <- cor(counts2, method = "spearman") # rounded to 2 decimals
-
-#-----
-# Define color mappings with named levels
-trt_colors <- c(DNR = "#F1B72B", DOX = "#8B006D", EPI = "#DF707E", MTX = "#3386DD", VEH = "#41B333")
-indiv_colors <- c(`87-1` = "#1B9E77", `77-1` = "#D95F02", `79-1` = "#7570B3", `78-1` = "#E7298A", `71-1` = "#66A61E", indiv6 = "#E6AB02")
-time_colors <- c(`3H` = "pink", `24H` = "chocolate4")
-AC_colors <- c(`YES` = "yellow1", `NO` = "darkorange1")
-
-# Define column annotations using named colors
-heatChar_highconf <- HeatmapAnnotation(
- trt = anno_simple(highConfChar$trt, col = trt_colors),
- indiv = anno_simple(highConfChar$indiv, col = indiv_colors),
- time = anno_simple(highConfChar$time, col = time_colors),
- AC = anno_simple(highConfChar$anthracycline, col = AC_colors)
-)
-
-#-------
-
-htmp2 <- Heatmap(as.matrix(cor_noLowConf), width = unit(12, "cm"),column_title = 
-                  'Spearman Correlation of Cardiotox Treatment Groups 
-                 Excluding Samples with Low Peak Count
-                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_highconf,
-                 )
-htmp2@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp2@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp2
-
-
-#####
-cpm_highConf <- counts %>% 
-                cpm(., log = TRUE) %>% 
-                cor(method = "spearman")
-
-highConfCounts <- data.frame(sample_list = colnames(cpm_highConf))
+htmp_3pks@column_names_param[["gp"]][["fontsize"]] <- 8
+htmp_3pks@row_names_param[["gp"]][["fontsize"]] <- 8
+htmp_3pks
 
 # PCA Plot -----------------------------------------------------------------------------------
- dataName <- c("87-1 DNR3", "87-1 DNR24",
-               "87-1 DOX3", "87-1 DOX24", 
-               "87-1 MTX3", "87-1 MTX24",
-               "87-1 VEH3", "87-1 VEH24",
-               
-               "77-1 DNR3", "77-1 DNR24",
-               "77-1 DOX3",
-               "77-1 EPI3", "77-1 EPI24", 
-               "77-1 MTX24",
-               "77-1 VEH3", "77-1 VEH24",
-               
-               "79-1 DNR3", "79-1 DNR24",
-               "79-1 DOX3", "79-1 DOX24",
-               "79-1 EPI3", "79-1 EPI24", 
-               "79-1 MTX3", "79-1 MTX24",
-               "79-1 VEH3", "79-1 VEH24",
-               
-               "78-1 DNR3", "78-1 DNR24",
-               "78-1 DOX3", "78-1 DOX24",
-               "78-1 EPI3", "78-1 EPI24", 
-               "78-1 MTX3", "78-1 MTX24",
-               "78-1 VEH3", "78-1 VEH24",
-               
-               "71-1 DNR3", "71-1 DNR24",
-               "71-1 DOX24",
-               "71-1 EPI3", "71-1 EPI24", 
-               "71-1 MTX3", "71-1 MTX24",
-               "71-1 VEH3", "71-1 VEH24") 
-
-characteristics <- data.frame(dataName)
-characteristics <- mutate(characteristics, anthracycline =NA, time =NA, 
-                          trt=NA, indiv=NA)
-
-# Update the anthracycline column based on the conditions
-characteristics <- characteristics %>%
- mutate(anthracycline = ifelse(grepl("VEH", dataName) | grepl("MTX", dataName), 'NO', 'YES'))
-
-characteristics <- characteristics %>%
- mutate(time = ifelse(grepl("3", dataName), '3H', '24H'))
-
-# Update the trt column based on the conditions
-characteristics <- characteristics %>%
- mutate(trt = ifelse(grepl("DOX", dataName), 'DOX',
-                     ifelse(grepl("DNR", dataName), 'DNR',
-                            ifelse(grepl("EPI", dataName), 'EPI',
-                                   ifelse(grepl("MTX", dataName), 'MTX', 'VEH')))))
-
-# Update the trt column based on the conditions
-characteristics <- characteristics %>%
- mutate(indiv = ifelse(grepl("87", dataName), '87-1',
-                       ifelse(grepl("77", dataName), '77-1',
-                              ifelse(grepl("79", dataName), '79-1',
-                                     ifelse(grepl("78", dataName), '78-1', '71-1')))))
-
 pca_counts <- cpm(counts, log = TRUE) %>% as.matrix() 
 pca_counts <- prcomp(t(counts), scale. = TRUE)
 
 groups <- as.factor(characteristics$indiv)
 
-drugPalette <- c("#F1B72B","#8B006D","#DF707E","#3386DD","#41B333")
+drug_pal <- c("#F1B72B","#8B006D","#DF707E","#3386DD","#41B333")
 
 pca_counts  %>%
  ggplot(.,aes(x = PC1, y = PC2, col=characteristics$trt,
@@ -404,48 +220,12 @@ pca_counts  %>%
        axis.title = element_text(size = 12, color = "black")+
         geom_label_repel())
 
-
-groups2 <- as.factor(highConfChar$indiv)
-pca_counts2 <- cpm(counts2, log = TRUE) %>% as.matrix() 
-pca_counts2 <- prcomp(t(counts2), scale. = TRUE)
-pca_counts2  %>%
- ggplot(.,aes(x = PC1, y = PC2, col=highConfChar$trt,
-              shape=highConfChar$time, group=groups2))+
- geom_point(size= 5)+
- scale_color_manual(values=drug_pal)+
- ggrepel::geom_text_repel(aes(label = groups2))+
- #scale_shape_manual(name = "Time",values= c("3h"=0,"24h"=1))+
- ggtitle(expression("log2 PCA excluding low confidence peaksets"))+
- theme_bw()+
- guides(col="none", size =4)+
- #labs(y = "PC 2 (13.81%)", x ="PC 1 (16.58%)")+
- theme(plot.title=element_text(size= 14,hjust = 0.5),
-       axis.title = element_text(size = 12, color = "black")+
-        geom_label_repel())
-
-pca_counts2  %>%
- ggplot(.,aes(x = PC3, y = PC4, col=highConfChar$trt,
-              shape=highConfChar$time, group=groups2))+
- geom_point(size= 5)+
- scale_color_manual(values=drug_pal)+
- ggrepel::geom_text_repel(aes(label = groups2))+
- #scale_shape_manual(name = "Time",values= c("3h"=0,"24h"=1))+
- ggtitle(expression("log2 PCA excluding low confidence peaksets"))+
- theme_bw()+
- guides(col="none", size =4)+
- #labs(y = "PC 2 (13.81%)", x ="PC 1 (16.58%)")+
- theme(plot.title=element_text(size= 14,hjust = 0.5),
-       axis.title = element_text(size = 12, color = "black")+
-        geom_label_repel())
-
-
-
 # boxplot ---------------------------------------------------------------------------
 conditions <- c("chr8.11696723.11705488", "chr5.173227675.173237356",
                 "chr7.5424533.5430372", "chr8.11679200.11684553",
                 "chr11.65416268.65424443", "chr1.201376777.201377946",
                 "chr1.236689729.236690453", "chr1.236699546.236700750", 
-                "chr6.36675879.36685632") #actn2
+                "chr6.36675879.36685632")
 
 conditionnames <- c("GATA4-1of2", "NKX2-5", "LINC03073", "GATA4-2of2",
                     "FRMD8","TNNT2","ACTN2-1of2","ACTN2-2of2", "CDKN1A")
@@ -467,7 +247,7 @@ for(a in conditions){
  cntr <- cntr + 1
 }
 
-masterbox <- rbind(box1,box2,box3,box4,box5,box6,box7, box8, box9)
+masterbox <- rbind(box1,box2,box3,box4,box5,box6,box7,box8,box9)
 
 ggplot(masterbox, aes(x = time, y=counts))+
   geom_boxplot(aes(fill=trt))+
@@ -482,266 +262,7 @@ ggplot(masterbox, aes(x = time, y=counts))+
   #theme_bw() 
 
 
-
-# Extracting total 14 samples -------------------------------------------------------
-#this excludes samples with fewer than 1.5K peaks. those samples are
-#77-1 VEH24, 
-#79-1 DOX3, 79-1 DOX24, 79-1 EPI3, 79-1 MTX3, 79-1 VEH3, 79-1 VEH24
-#78-1 DNR24,78-1 DOX3, 78-1 EPI24, 78-1 MTX24, 78-1 VEH3, 78-1 VEH24
-#71-1 VEH3
-
-dataName3 <- c("87-1 DNR3", "87-1 DNR24",
-               "87-1 DOX3", "87-1 DOX24", 
-               "87-1 MTX3", "87-1 MTX24",
-               "87-1 VEH3", "87-1 VEH24",
-               
-               "77-1 DNR3", "77-1 DNR24",
-               "77-1 DOX3",
-               "77-1 EPI3", "77-1 EPI24", 
-               "77-1 MTX24",
-               "77-1 VEH3",
-               
-               "79-1 DNR3", "79-1 DNR24",
-               "79-1 EPI24", 
-               "79-1 MTX24",
-               
-               "78-1 DNR3", 
-               "78-1 DOX24",
-               "78-1 EPI3",  
-               "78-1 MTX3",
-               
-               "71-1 DNR3", "71-1 DNR24",
-               "71-1 DOX24",
-               "71-1 EPI3", "71-1 EPI24", 
-               "71-1 MTX3", "71-1 MTX24",
-               "71-1 VEH24")
-
-highConfChar2 <- data.frame(dataName3)
-highConfChar2 <- mutate(highConfChar2, anthracycline =NA, time =NA, 
-                       trt=NA, indiv=NA)
-
-# Update the anthracycline column based on the conditions
-highConfChar2 <- highConfChar2 %>%
-  mutate(anthracycline = ifelse(grepl("VEH", dataName3) | grepl("MTX", dataName3), 'NO', 'YES'))
-
-highConfChar2 <- highConfChar2 %>%
-  mutate(time = ifelse(grepl("3", dataName3), '3H', '24H'))
-
-# Update the trt column based on the conditions
-highConfChar2 <- highConfChar2 %>%
-  mutate(trt = ifelse(grepl("DOX", dataName3), 'DOX',
-                      ifelse(grepl("DNR", dataName3), 'DNR',
-                             ifelse(grepl("EPI", dataName3), 'EPI',
-                                    ifelse(grepl("MTX", dataName3), 'MTX', 'VEH')))))
-
-# Update the trt column based on the conditions
-highConfChar2 <- highConfChar2 %>%
-  mutate(indiv = ifelse(grepl("87", dataName3), '87-1',
-                        ifelse(grepl("77", dataName3), '77-1',
-                               ifelse(grepl("79", dataName3), '79-1',
-                                      ifelse(grepl("78", dataName3), '78-1', '71-1')))))
-
-
-counts3 <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]], 
-                      `87-1 DOX3`[[1]],`87-1 DOX24`[[1]],
-                      `87-1 MTX3`[[1]],`87-1 MTX24`[[1]],
-                      `87-1 VEH3`[[1]],`87-1 VEH24`[[1]],
-                      
-                      `77-1 DNR3`[[1]],`77-1 DNR24`[[1]], 
-                      `77-1 DOX3`[[1]],
-                      `77-1 EPI3`[[1]],`77-1 EPI24`[[1]], 
-                      `77-1 MTX24`[[1]],
-                      `77-1 VEH3`[[1]],
-                      
-                      `79-1 DNR3`[[1]],`79-1 DNR24`[[1]],
-                      `79-1 EPI24`[[1]], 
-                      `79-1 MTX24`[[1]],
-                      
-                      `78-1 DNR3`[[1]],
-                      `78-1 DOX24`[[1]],
-                      `78-1 EPI3`[[1]], 
-                      `78-1 MTX3`[[1]],
-                      
-                      `71-1 DNR3`[[1]],`71-1 DNR24`[[1]], 
-                      `71-1 DOX24`[[1]],
-                      `71-1 EPI3`[[1]],`71-1 EPI24`[[1]], 
-                      `71-1 MTX3`[[1]],`71-1 MTX24`[[1]],
-                      `71-1 VEH24`[[1]])
-
-colnames(counts3) <- dataName3
-rownames(counts3) <- featureLoc$chrLoc
-
-cor_noLowConf2 <- cor(counts3, method = "spearman") # rounded to 2 decimals
-
-
-heatChar_minus12 <- HeatmapAnnotation(
-  trt = anno_simple(highConfChar2$trt, col = trt_colors),
-  indiv = anno_simple(highConfChar2$indiv, col = indiv_colors),
-  time = anno_simple(highConfChar2$time, col = time_colors),
-  AC = anno_simple(highConfChar2$anthracycline, col = AC_colors)
-)
-htmp_minus12 <- Heatmap(as.matrix(cor_noLowConf2), width = unit(12, "cm"),column_title = 
-                   'Spearman Correlation of Cardiotox Treatment Groups 
-                 Excluding 12 Samples with <1.5K Peaks
-                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_minus12,
-)
-htmp_minus12@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12
-
-row_means2 <- rowMeans(counts3)
-counts_filtered2 <- counts3[row_means2 > 10,]
-
-cor_noLowConf2_filt <- cor(counts_filtered2, method = "spearman") # rounded to 2 decimals
-
-htmp_minus12_filt <- Heatmap(as.matrix(cor_noLowConf2_filt), width = unit(12, "cm"),column_title = 
-                          'Spearman Correlation of Cardiotox Treatment Groups 
-                 Excluding 12 Samples with <1.5K Peaks
-                 Filtered for Mean Peak Counts of >10
-                 High Conf Peak Set >= 3 Peaks', top_annotation = heatChar_minus12,
-)
-htmp_minus12_filt@column_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12_filt@row_names_param[["gp"]][["fontsize"]] <- 8
-htmp_minus12_filt
-
-
-
-
-#####
-
-groups3 <- as.factor(highConfChar2$indiv)
-pca_counts3 <- cpm(counts3, log = TRUE) %>% as.matrix() 
-pca_counts3 <- prcomp(t(counts3), scale. = TRUE)
-summary(pca_counts3)
-
-pca_counts3  %>%
-  ggplot(.,aes(x = PC1, y = PC2, col=highConfChar2$trt,
-               shape=highConfChar2$time, group=groups3))+
-  geom_point(size= 5)+
-  scale_color_manual(values=drugPalette)+
-  ggrepel::geom_text_repel(aes(label = groups3))+
-  #scale_shape_manual(name = "Time",values= c("3h"=0,"24h"=1))+
-  ggtitle(expression("log2 PCA excluding low confidence peaksets"))+
-  theme_bw()+
-  guides(col="none", size =4)+
-  labs(y = "PC 2 (8.048%)", x ="PC 1 (68.92%)")+
-  theme(plot.title=element_text(size= 14,hjust = 0.5),
-        axis.title = element_text(size = 12, color = "black")+
-          geom_label_repel())
-
-
-pca_counts3  %>%
-  ggplot(.,aes(x = PC2, y = PC3, col=highConfChar2$trt,
-               shape=highConfChar2$time, group=groups3))+
-  geom_point(size= 5)+
-  scale_color_manual(values=drugPalette)+
-  ggrepel::geom_text_repel(aes(label = groups3))+
-  #scale_shape_manual(name = "Time",values= c("3h"=0,"24h"=1))+
-  ggtitle(expression("log2 PCA excluding low confidence peaksets"))+
-  theme_bw()+
-  guides(col="none", size =4)+
-  labs(x = "PC 2 (8.048%)", y ="PC 3 (4.305%)")+
-  theme(plot.title=element_text(size= 14,hjust = 0.5),
-        axis.title = element_text(size = 12, color = "black")+
-          geom_label_repel())
-
-#####
-
-
-
-#cpmFilt_highConf
-pca_counts4 <- prcomp(t(cor_noLowConf2_filt), scale. = TRUE)
-summary(pca_counts4)
-
-pca_counts4  %>%
-  ggplot(.,aes(x = PC1, y = PC2, col=highConfChar2$trt,
-               shape=highConfChar2$time, group=groups3))+
-  geom_point(size= 5)+
-  scale_color_manual(values=drugPalette)+
-  ggrepel::geom_text_repel(aes(label = groups3))+
-  #scale_shape_manual(name = "Time",values= c("3h"=0,"24h"=1))+
-  ggtitle(expression("log2 PCA excluding low confidence peaksets"))+
-  theme_bw()+
-  guides(col="none", size =4)+
-  labs(y = "PC 2 (23.11%)", x ="PC 1 (33.91%)")+
-  theme(plot.title=element_text(size= 14,hjust = 0.5),
-        axis.title = element_text(size = 12, color = "black")+
-          geom_label_repel())
-
-
-pca_counts4  %>%
-  ggplot(.,aes(x = PC2, y = PC3, col=highConfChar2$trt,
-               shape=highConfChar2$time, group=groups3))+
-  geom_point(size= 5)+
-  scale_color_manual(values=drugPalette)+
-  ggrepel::geom_text_repel(aes(label = groups3))+
-  #scale_shape_manual(name = "Time",values= c("3h"=0,"24h"=1))+
-  ggtitle(expression("log2 PCA excluding low confidence peaksets"))+
-  theme_bw()+
-  guides(col="none", size =4)+
-  labs(x = "PC 2 (23.11%)", y ="PC 3 (11.76%)")+
-  theme(plot.title=element_text(size= 14,hjust = 0.5),
-        axis.title = element_text(size = 12, color = "black")+
-          geom_label_repel())
-
-
-
-# DE genes for renees rna -----------------------------------------------------------
-
-dataName <- c("87-1 DNR3", "87-1 DNR24",
-              "87-1 DOX3", "87-1 DOX24", 
-              "87-1 MTX3", "87-1 MTX24",
-              "87-1 VEH3", "87-1 VEH24",
-              
-              "77-1 DNR3", "77-1 DNR24",
-              "77-1 DOX3",
-              "77-1 EPI3", "77-1 EPI24", 
-              "77-1 MTX24",
-              "77-1 VEH3", "77-1 VEH24",
-              
-              "79-1 DNR3", "79-1 DNR24",
-              "79-1 DOX3", "79-1 DOX24",
-              "79-1 EPI3", "79-1 EPI24", 
-              "79-1 MTX3", "79-1 MTX24",
-              "79-1 VEH3", "79-1 VEH24",
-              
-              "78-1 DNR3", "78-1 DNR24",
-              "78-1 DOX3", "78-1 DOX24",
-              "78-1 EPI3", "78-1 EPI24", 
-              "78-1 MTX3", "78-1 MTX24",
-              "78-1 VEH3", "78-1 VEH24",
-              
-              "71-1 DNR3", "71-1 DNR24",
-              "71-1 DOX24",
-              "71-1 EPI3", "71-1 EPI24", 
-              "71-1 MTX3", "71-1 MTX24",
-              "71-1 VEH3", "71-1 VEH24") 
-
-characteristics <- data.frame(dataName)
-characteristics <- mutate(characteristics, anthracycline =NA, time =NA, 
-                          trt=NA, indiv=NA)
-
-# Update the anthracycline column based on the conditions
-characteristics <- characteristics %>%
-  mutate(anthracycline = ifelse(grepl("VEH", dataName) | grepl("MTX", dataName), 'NO', 'YES'))
-
-characteristics <- characteristics %>%
-  mutate(time = ifelse(grepl("3", dataName), '3H', '24H'))
-
-# Update the trt column based on the conditions
-characteristics <- characteristics %>%
-  mutate(trt = ifelse(grepl("DOX", dataName), 'DOX',
-                      ifelse(grepl("DNR", dataName), 'DNR',
-                             ifelse(grepl("EPI", dataName), 'EPI',
-                                    ifelse(grepl("MTX", dataName), 'MTX', 'VEH')))))
-
-# Update the trt column based on the conditions
-characteristics <- characteristics %>%
-  mutate(indiv = ifelse(grepl("87", dataName), '87-1',
-                        ifelse(grepl("77", dataName), '77-1',
-                               ifelse(grepl("79", dataName), '79-1',
-                                      ifelse(grepl("78", dataName), '78-1', '71-1')))))
-
+# DE genes from renees rna -----------------------------------------------------------
 
 # cdkn1a, sort1, znf740, slc28a3, 
 # rmi1, frs2, ppip5k2, celsr1, 
