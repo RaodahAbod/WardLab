@@ -170,7 +170,6 @@ fragHistDist <- fragLen %>%
         ylab("Count") +
         ylim(0, 20000) +
         coord_cartesian(xlim = c(0, 500))
-
 fragHistDist
 
 
