@@ -142,7 +142,7 @@ counts <- data.frame(`87-1 DNR3`[[1]],`87-1 DNR24`[[1]],
 colnames(counts) <- dataName
 
 # this is an optimization step that can allow us to filter out any lowly expressed regions
-# accross all samples. 
+# across all samples. 
 row_means <- rowMeans(counts)
 counts_filtered <- counts[row_means > 10,]
 # this filtered count matrix can be passed through the heat map function and be visualized, 
@@ -169,7 +169,7 @@ cpm_highConf <- counts %>%
  cor(method = "spearman")
 corHtmp <- Heatmap(as.matrix(cpm_highConf), width = unit(12, "cm"),column_title = 
                  'CPM Spearman Correlation of Cardiotox Treatment Groups
-                   High Confidence Peak Set >= 2 Peaks', 
+                   High Confidence Peak Set >= 3 Peaks', 
                 top_annotation = heatChar)
 corHtmp@column_names_param[["gp"]][["fontsize"]] <- 8
 corHtmp@row_names_param[["gp"]][["fontsize"]] <- 8
